@@ -1,43 +1,31 @@
 #include <stdio.h>
-#include "read2.c"
-#include <math.h>
-
-int main()
+FILE *ffp(int ac, int ar)
 {
-  init();
-  FILE *ffplay;
-  unsigned int n = 31000;
-  ffplay = popen("ffplay -i pipe:0 -f f32le -ac 1 -ar 31000", "w");
-  float *b = (float *)malloc(n * sizeof(float));
-  for (int midi = 34; midi < 64; midi++)
-  {
-    ssample(0, midi, 120 - midi, b, n);
-    fwrite(b, n, sizeof(float), ffplay);
-  }
-  return 0;
+  char cmd[1024];
+  sprintf(cmd, "ffplay -nodisp -loglevel panic -i pipe:0 -f f32le -ac %d -ar %d", ac, ar);
+  FILE *ffplay = popen(cmd, "w");
+  if (!ffplay)
+    perror("cmd fail");
+  return ffplay;
 }
 
-float poww(int n, int b)
+FILE *wavepic(char *png_name)
 {
-  if (b < 0)
-  {
-    return 1 / poww(n, -1 * b);
-  }
-  else if (n == 2 && b > 0.083 && b < 0.08333)
-  {
-    return 1.05946309f;
-  }
-  else if (n == 2 && b > 0.16 && b < 0.1666)
-  {
-    return 1.122462048f;
-  }
-  else if (n == 2 && b == 0.25)
-  {
-    // && b<0.17){
-    return 1.1892071f;
-  }
-  else
-  {
-    return powf(n, b);
-  }
-};
+  char cmd[1024];
+  sprintf(cmd, "ffmpeg -i pipe:0 -filter_complex 'showwavespic=s=640x120' -frames:v 1 %s", png_name); // ac, ar);
+  FILE *ffwavepic = popen(cmd, "w");
+  if (!ffwavepic)
+    perror("cmd fail");
+  return ffwavepic;
+}
+
+FILE *formatpcm(char *format, char *filename)
+{
+  char cmd[1024];
+  sprintf(cmd, "ffmpeg -y -f f32le -i pipe:0 -ac 2 -ar 48000 -f %s %s", format, filename); //png_name); // ac, ar);
+  FILE *pipel = popen(cmd, "w");
+  if (!pipel)
+    perror("cmd fail");
+  return pipel;
+}
+//popen("ffmpeg -y -f f32le -i pipe:0 -ac 2 -ar 48000 -f WAV o.wav", "w")

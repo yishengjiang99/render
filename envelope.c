@@ -20,7 +20,7 @@ typedef struct
 adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay, short sustain, int sampleRate)
 {
 	adsr_t *env = (adsr_t *)malloc(sizeof(adsr_t));
-	env->att_steps = fmax(p2over1200(centAtt) * sampleRate, 2);
+	env->att_steps = fmax(p2over1200(centAtt) * sampleRate, 58);
 	env->decay_steps = fmax(p2over1200(centDecay) * sampleRate, 2);
 	env->release_steps = fmax(p2over1200(centRelease) * sampleRate, 2);
 	env->att_rate = -960.0f / env->att_steps;

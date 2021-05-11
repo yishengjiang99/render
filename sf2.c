@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <mm_malloc.h>
 #include <string.h>
-#include "read2.h"
+#include "sf2.h"
 #include "listscan.c"
 #ifndef voice_h
 #include "voice.c"
@@ -24,8 +24,8 @@ int readsf(FILE *fd)
 	fread(info, h2->size, 1, fd);
 	fread(h2, sizeof(header2_t), 1, fd);
 	printf("\n%.4s %u", h2->name, h2->size);
-	data = (short *)malloc(h2->size * sizeof(short));
-	sdta = (float *)malloc(h2->size * sizeof(float));
+	data = (short *)malloc(h2->size / 2 * sizeof(short));
+	sdta = (float *)malloc(h2->size / 2 * sizeof(float));
 	float *trace = sdta;
 	nsamples = h2->size / sizeof(short);
 
@@ -48,7 +48,7 @@ int readsf(FILE *fd)
 	section_header *sh = (section_header *)malloc(sizeof(section_header));
 
 	fread(h2, sizeof(header2_t), 1, fd);
-	printf("\n%.4s %u \n", h2->name, h2->size);
+	printf("%.4s %u \n", h2->name, h2->size);
 
 	readSection(phdr);
 	readSection(pbag);
@@ -59,10 +59,11 @@ int readsf(FILE *fd)
 	readSection(imod);
 	readSection(igen);
 	readSection(shdr);
+	printf("readdone");
 	return 1;
 }
 
-void get_sf(int pid, int bkid, int key, int vel, node **head)
+void get_sf(int pid, int bkid, int key, int vel, node **head, int index)
 {
 	short *attributes;
 	short igset[60] = {-1};
@@ -109,8 +110,7 @@ void get_sf(int pid, int bkid, int key, int vel, node **head)
 				for (int ibg = ibgId; ibg < lastibg; ibg++)
 				{
 					lastSampId = -1;
-
-					short igset[60];
+					short igset[60] = {-1};
 					ibag *ibgg = ibags + ibg;
 					pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id : igens + nigens - 1;
 					for (pgen_t *g = igens + ibgg->igen_id; g->operator!= 60 && g != lastig; g++)
@@ -120,10 +120,10 @@ void get_sf(int pid, int bkid, int key, int vel, node **head)
 							break;
 						if (key > -1 && g->operator== 43 &&(g->val.ranges.lo > key || g->val.ranges.hi < key))
 							break;
-						igset[g->operator]=g->val.uAmount;
+						igset[g->operator]=g->val.shAmount;
 						if (g->operator== 53)
 						{
-							lastSampId = g->val.uAmount; // | (ig->val.ranges.hi << 8);
+							lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
 						}
 					}
 					if (lastSampId > -1)
@@ -144,7 +144,7 @@ void get_sf(int pid, int bkid, int key, int vel, node **head)
 						zone_t *z = (zone_t *)attributes;
 						voice *v = newVoice(z, key, vel);
 
-						insert_node(head, newNode(v, 1));
+						insert_node(head, newNode(v, index));
 					}
 				}
 			}
