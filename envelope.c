@@ -7,7 +7,15 @@
 #include <math.h>
 #include <stdlib.h>
 
+#define adsr 1
 #define fmax(a, b) a > b ? a : b
+typedef struct
+{
+	uint32_t att_steps, decay_steps, release_steps, delay_steps, hold_steps;
+	unsigned short sustain;
+	float db_attenuate;
+	float att_rate, decay_rate, release_rate;
+} adsr_t;
 
 adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay, short sustain, int sampleRate)
 {

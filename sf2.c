@@ -1,9 +1,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <mm_malloc.h>
 #include <string.h>
 #include "read2.h"
+#include "listscan.c"
+#ifndef voice_h
+#include "voice.c"
+
+#endif
 #define sr 48000
 
 int readsf(FILE *fd)
@@ -57,11 +62,9 @@ int readsf(FILE *fd)
 	return 1;
 }
 
-zone_t *index22(int pid, int bkid, int key, int vel)
+void get_sf(int pid, int bkid, int key, int vel, node **head)
 {
-	zone_t *list = (zone_t *)malloc(sizeof(zone_t) * 10);
-	zone_t *head = list;
-	int found = 0;
+	short *attributes;
 	short igset[60] = {-1};
 	int instID = -1;
 	int lastSampId = -1;
@@ -71,7 +74,6 @@ zone_t *index22(int pid, int bkid, int key, int vel)
 		if (phdrs[i].bankId != bkid || phdrs[i].pid != pid)
 			continue;
 		int lastbag = phdrs[i + 1].pbagNdx;
-
 		for (int j = phdrs[i].pbagNdx; j < lastbag; j++)
 		{
 			pbag *pg = pbags + j;
@@ -83,17 +85,16 @@ zone_t *index22(int pid, int bkid, int key, int vel)
 			for (int k = pgenId; k < lastPgenId; k++)
 			{
 				pgen_t *g = pgens + k;
-				if (g->operator== 48)
-					printf("atten %hd f", g->val.shAmount);
-				if (g->operator== 44 &&(g->val.ranges.lo > vel || g->val.ranges.hi < vel))
+
+				if (vel > -1 && g->operator== 44 &&(g->val.ranges.lo > vel || g->val.ranges.hi < vel))
 					break;
-				if (g->operator== 43 &&(g->val.ranges.lo > key || g->val.ranges.hi < key))
+				if (key > -1 && g->operator== 43 &&(g->val.ranges.lo > key || g->val.ranges.hi < key))
 					break;
 				if (g->operator== 41)
 				{
-					instID = g->val.shAmount;
+					instID = g->val.uAmount;
 				}
-				pgset[g->operator] = g->val.shAmount;
+				pgset[g->operator] = g->val.uAmount;
 			}
 			if (instID == -1)
 			{
@@ -104,63 +105,50 @@ zone_t *index22(int pid, int bkid, int key, int vel)
 				inst *ihead = insts + instID;
 				int ibgId = ihead->ibagNdx;
 				int lastibg = (ihead + 1)->ibagNdx;
-				lastSampId = -1;
 				short igdef[60] = {-1};
 				for (int ibg = ibgId; ibg < lastibg; ibg++)
 				{
+					lastSampId = -1;
+
 					short igset[60];
 					ibag *ibgg = ibags + ibg;
 					pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id : igens + nigens - 1;
 					for (pgen_t *g = igens + ibgg->igen_id; g->operator!= 60 && g != lastig; g++)
 					{
-						if (g->operator== 48)
-							printf("atten %hu", g->val.shAmount);
-						if (g->operator== 44 &&(g->val.ranges.lo > vel || g->val.ranges.hi < vel))
-							break;
-						if (g->operator== 43 &&(g->val.ranges.lo > key || g->val.ranges.hi < key))
-							break;
 
-						igset[g->operator]=g->val.shAmount;
+						if (vel > -1 && g->operator== 44 &&(g->val.ranges.lo > vel || g->val.ranges.hi < vel))
+							break;
+						if (key > -1 && g->operator== 43 &&(g->val.ranges.lo > key || g->val.ranges.hi < key))
+							break;
+						igset[g->operator]=g->val.uAmount;
 						if (g->operator== 53)
 						{
-							lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
+							lastSampId = g->val.uAmount; // | (ig->val.ranges.hi << 8);
 						}
 					}
 					if (lastSampId > -1)
 					{
-						short *attributes = (short *)malloc(sizeof(short) * 60);
+						attributes = (short *)malloc(sizeof(short) * 60);
 						for (int i = 0; i < 60; i++)
 						{
-							if (igset[i])
+							if (igset[i] != -1)
 								*(attributes + i) = igset[i];
-							else if (igdef[i])
-								*(attributes + i) = igset[i];
+							else if (igdef[i] != -1)
+								*(attributes + i) = igdef[i];
 
-							if (pgset[i])
+							if (pgset[i] != -1)
 								*(attributes + i) += pgset[i];
-							else if (pgdef[i])
+							else if (pgdef[i] != -1)
 								*(attributes + i) += pgdef[i];
 						}
+						zone_t *z = (zone_t *)attributes;
+						voice *v = newVoice(z, key, vel);
 
-						zone_t *z = list;
-
-						//						list = &z;
-						memcpy(z, attributes, 60 * sizeof(short));
-
-						//		printf("\n samp%d", lastSampId);
-						shdrcast *sh = (shdrcast *)(shdrs + lastSampId);
-						z->sample = sh;
-
-						z->start = sh->start + ((unsigned short)(z->StartAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->StartAddrOfs & 0x7f);
-						z->end = sh->end + ((unsigned short)(z->EndAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->EndAddrOfs & 0x7f);
-						z->endloop = sh->endloop + ((unsigned short)(z->EndLoopAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->EndLoopAddrOfs & 0x7f);
-						z->startloop = sh->startloop + (unsigned short)(z->StartLoopAddrCoarseOfs & 0x7f << 15) + (unsigned short)(z->StartLoopAddrOfs & 0x7f);
-						list++;
-						//						list++;
+						insert_node(head, newNode(v, 1));
 					}
 				}
 			}
 		}
 	}
-	return head;
+	//return head;
 }

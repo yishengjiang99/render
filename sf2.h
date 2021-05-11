@@ -120,16 +120,7 @@ typedef struct
 			EndAddrOfs, StartLoopAddrOfs, EndLoopAddrOfs,
 			StartAddrCoarseOfs, ModLFO2Pitch, VibLFO2Pitch, ModEnv2Pitch, FilterFc, FilterQ, ModLFO2FilterFc, ModEnv2FilterFc,
 			EndAddrCoarseOfs, ModLFO2Vol, Unused1, ChorusSend, ReverbSend, Pan, Unused2, Unused3, Unused4, ModLFODelay, ModLFOFreq, VibLFODelay, VibLFOFreq, ModEnvDelay, ModEnvAttack, ModEnvHold, ModEnvDecay, ModEnvSustain, ModEnvRelease, Key2ModEnvHold, Key2ModEnvDecay, VolEnvDelay, VolEnvAttack, VolEnvHold, VolEnvDecay, VolEnvSustain, VolEnvRelease, Key2VolEnvHold, Key2VolEnvDecay, Instrument, Reserved1, KeyRange, VelRange, StartLoopAddrCoarseOfs, Keynum, Velocity, Attenuation, Reserved2, EndLoopAddrCoarseOfs, CoarseTune, FineTune, SampleId, SampleModes, Reserved3, ScaleTune, ExclusiveClass, OverrideRootKey, Dummy;
-	shdrcast *sample;
-	uint32_t start, end, startloop, endloop;
 } zone_t;
-typedef struct
-{
-	uint32_t att_steps, decay_steps, release_steps, delay_steps, hold_steps;
-	unsigned short sustain;
-	float db_attenuate;
-	float att_rate, decay_rate, release_rate;
-} adsr_t;
 
 static int nphdrs, npbags, npgens, npmods, nshdrs, ninsts, nimods, nigens, nibags, nshrs;
 

@@ -1,0 +1,15 @@
+{
+	"files.associations": {
+		"read2.h": "c",
+		"__hash_table": "c",
+		"vector": "c",
+		"math.h": "c",
+		"string.h": "c",
+		"stdio.h": "c",
+		"stdlib.h": "c",
+		"array": "c",
+		"string": "c",
+		"string_view": "c",
+		"assert.h": "c"
+	}
+}

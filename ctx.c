@@ -1,25 +1,19 @@
 #include <math.h>
+
 #ifndef read2_h
 #include "read2.c"
 #endif
 #include "string.h"
+#ifndef adsr
 #include "envelope.c"
-typedef struct _voice
-{
-	zone_t *z;
-	uint32_t pos;
-	float frac;
-	float ratio;
-	adsr_t *ampvol;
-	int midi;
-	int velocity;
-	int chid;
-	struct _voice *next;
-} voice;
+#endif
+#ifndef voice_h
+#include "voice.c"
+
+#endif
 typedef struct
 {
-	voice voices[2];
-	voice *queue;
+	node *fadeouts; //voices after release
 	int program_number;
 	float midi_gain_cb;
 	float midi_pan;
@@ -31,10 +25,12 @@ typedef struct _ctx
 	int currentFrame_start;
 	int samples_per_frame;
 	channel_t channels[16];
+	node *voices;
 	float output[128 * 2];
+	FILE *outputFD;
 } ctx_t;
 
-ctx_t *init_ctx()
+ctx_t *init_ctx(FILE *fdout)
 {
 	ctx_t *ctx = (ctx_t *)malloc(sizeof(ctx_t));
 	ctx->sampleRate = 48000;
@@ -44,7 +40,10 @@ ctx_t *init_ctx()
 	{
 		ctx->channels[i].program_number = 0;
 		ctx->channels[i].midi_gain_cb = 0;
+		ctx->channels[i].fadeouts = 0;
 	}
+	ctx->voices = 0;
+	ctx->outputFD = fdout;
 	return ctx;
 }
 
@@ -52,41 +51,29 @@ void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel)
 {
 	int programNumber = ctx->channels[channelNumber].program_number;
 
-	zone_t *z = index22(programNumber & 0x7f, programNumber & 0x80, midi, vel);
-	int i = 0;
-	while (i < 2 && z != NULL)
-	{
-
-		voice v;
-		printf("%d %d %d %d", z->VolEnvAttack, z->VolEnvDecay, z->VolEnvDecay, z->VolEnvSustain);
-		v.ampvol = newEnvelope(z->VolEnvAttack, z->VolEnvRelease, z->VolEnvDecay, z->VolEnvSustain, 48000);
-		printf("%d %f", v.ampvol->att_steps, v.ampvol->decay_rate);
-		short rt = z->OverrideRootKey > -1 ? z->sample->originalPitch : z->sample->originalPitch;
-		float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
-		float octaveDivv = ((float)midi * 100 - sampleTone) / 1200.0f;
-		v.ratio = 1.0f * pow(2.0f, octaveDivv) * z->sample->sampleRate / 48000;
-
-		v.pos = z->sample->start;
-		v.frac = 0.0f;
-		v.z = z;
-		v.midi = midi;
-		v.velocity = vel;
-		ctx->channels[channelNumber].voices[i++] = v;
-	}
+	get_sf(programNumber & 0x7f, programNumber & 0x80, midi, vel, &(ctx->voices));
 }
-void noteOff(ctx_t *ctx, int channelNumber, int midi)
+
+void noteOff(ctx_t *ctx, int ch, int midi)
 {
-	for (int i = 0; i < 4; i++)
+	node *voices = ctx->voices;
+	node **tracer = &voices;
+	node *fadeout = ctx->channels[ch].fadeouts;
+	while (*tracer && (*tracer)->voice != NULL)
 	{
-		voice v = ctx->channels[channelNumber].voices[i];
-		if (v.midi == midi)
-			adsrRelease(v.ampvol);
+		voice *v = (*tracer)->voice;
+		if (v->midi == midi)
+		{
+			adsrRelease(v->ampvol);
+			(*tracer) = (*tracer)->next;
+			insert_node(&fadeout, newNode(v, 1));
+		}
 	}
 }
 
 void loop(voice *v, channel_t *ch, ctx_t *ctx)
 {
-	uint32_t loopLength = v->z->sample->endloop - v->z->sample->startloop;
+	uint32_t loopLength = v->sample->endloop - v->sample->startloop;
 	int cb_attentuate = v->z->Attenuation; // - ch->midi_gain_cb;
 	uint16_t pan = ch->midi_pan > 0 ? ch->midi_pan * 960 / 127 : v->z->Pan;
 	float panLeft = 1.01;
@@ -108,21 +95,29 @@ void loop(voice *v, channel_t *ch, ctx_t *ctx)
 			v->frac--;
 			v->pos++;
 		}
-		if (v->pos >= v->z->sample->endloop)
+		if (v->pos >= v->sample->endloop)
 		{
 			v->pos = v->pos - loopLength;
 		}
 	}
 }
-void render(ctx_t *ctx, FILE *stdout)
+void render(ctx_t *ctx)
 {
 	bzero(ctx->output, sizeof(float) * ctx->samples_per_frame);
-	for (int ch = 0; ch < 16; ch++)
+
+	node *voices = ctx->voices;
+	node **tracer = &voices;
+	while (*tracer && (*tracer)->voice)
 	{
-		for (int i = 0; i < 4; i++)
+		voice *v = (*tracer)->voice;
+		if (v->ampvol->release_steps <= 0)
 		{
-			voice v = ctx->channels[ch].voices[i];
-			loop(v, ctx->channels[ch], ctx);
+			(*tracer) = (*tracer)->next;
+		}
+		else
+		{
+			loop(v, &ctx->channels[v->chid], ctx);
+			tracer = &(*tracer)->next;
 		}
 	}
 	fwrite(ctx->output, 128, 4, stdout);
