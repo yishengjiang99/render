@@ -1,7 +1,5 @@
-#include <math.h>
-
 #ifndef read2_h
-#include "read2.c"
+#include "sf2.c"
 #endif
 #include "string.h"
 #ifndef adsr
@@ -73,11 +71,11 @@ void noteOff(ctx_t *ctx, int ch, int midi)
 
 void loop(voice *v, channel_t *ch, ctx_t *ctx)
 {
-	uint32_t loopLength = v->sample->endloop - v->sample->startloop;
+	uint32_t loopLength = v->endloop - v->startloop;
 	int cb_attentuate = v->z->Attenuation; // - ch->midi_gain_cb;
-	uint16_t pan = ch->midi_pan > 0 ? ch->midi_pan * 960 / 127 : v->z->Pan;
-	float panLeft = 1.01;
-	float panright = 0.9;
+	short pan = v->z->Pan;
+	float panLeft = sqrtf(0.5f - pan / 1000.0f);
+	float panright = sqrtf(0.5f + pan / 1000.0f);
 	for (int i = 0; i < 128; i++)
 	{
 		float f1 = *(sdta + v->pos);
@@ -110,15 +108,8 @@ void render(ctx_t *ctx)
 	while (*tracer && (*tracer)->voice)
 	{
 		voice *v = (*tracer)->voice;
-		if (v->ampvol->release_steps <= 0)
-		{
-			(*tracer) = (*tracer)->next;
-		}
-		else
-		{
-			loop(v, &ctx->channels[v->chid], ctx);
-			tracer = &(*tracer)->next;
-		}
+		loop(v, &ctx->channels[v->chid], ctx);
+		tracer = &(*tracer)->next;
 	}
-	fwrite(ctx->output, 128, 4, stdout);
+	fwrite(ctx->output, 128 * 2, 4, ctx->outputFD);
 }

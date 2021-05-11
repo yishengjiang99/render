@@ -23,6 +23,7 @@ voice *newVoice(zone_t *z, int midi, int vel)
 {
 	shdrcast *sh = (shdrcast *)(shdrs + z->SampleId);
 	voice *v = (voice *)malloc(sizeof(voice));
+	v->sample = sh;
 	v->start = sh->start + ((unsigned short)(z->StartAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->StartAddrOfs & 0x7f);
 	v->end = sh->end + ((unsigned short)(z->EndAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->EndAddrOfs & 0x7f);
 	v->endloop = sh->endloop + ((unsigned short)(z->EndLoopAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->EndLoopAddrOfs & 0x7f);

@@ -10,6 +10,10 @@
 		"array": "c",
 		"string": "c",
 		"string_view": "c",
-		"assert.h": "c"
+		"assert.h": "c",
+		"varint.h": "c",
+		"tml.h": "c",
+		"__node_handle": "c",
+		"chrono": "c"
 	}
 }
