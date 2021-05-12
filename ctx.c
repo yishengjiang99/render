@@ -9,6 +9,8 @@
 #include "voice.c"
 
 #endif
+#include "shift.c"
+
 typedef struct
 {
 	node *fadeouts; //voices after release
@@ -29,8 +31,12 @@ typedef struct _ctx
 	FILE *outputFD;
 } ctx_t;
 
-ctx_t *init_ctx(FILE *fdout)
+ctx_t *init_ctx()
 {
+	/*
+	(-200.0 / 960) *
+                    Math.log10((note.velocity * note.velocity) / (127 * 127))
+										*/
 	ctx_t *ctx = (ctx_t *)malloc(sizeof(ctx_t));
 	ctx->sampleRate = 48000;
 	ctx->currentFrame_start = 0;
@@ -39,11 +45,10 @@ ctx_t *init_ctx(FILE *fdout)
 	{
 		ctx->channels[i].program_number = 0;
 		ctx->channels[i].midi_gain_cb = 0;
-		ctx->channels[i].fadeouts = 0;
 	}
 	ctx->voices = 0;
 	ctx->fadeouts = 0;
-	ctx->outputFD = fdout;
+	ctx->outputFD = NULL;
 	ctx->outputbuffer = (float *)malloc(sizeof(float) * ctx->samples_per_frame * 2);
 	return ctx;
 }
@@ -64,38 +69,7 @@ void noteOff(ctx_t *ctx, int ch, int midi)
 		printf("not found %d %d", ch, midi);
 
 	adsrRelease(v->voice->ampvol);
-	insert_node(&(ctx->fadeouts), v);
-}
-
-void loop(voice *v, channel_t *ch, ctx_t *ctx)
-{
-	uint32_t loopLength = v->endloop - v->startloop;
-	float attentuate = centdblut(v->z->Attenuation);
-	short pan = v->z->Pan;
-
-	float panLeft = sqrtf(0.5f - pan / 1000.0f);	//* attentuate;
-	float panright = sqrtf(0.5f + pan / 1000.0f); // * attentuate;
-	printf("%f\n", attentuate);
-	for (int i = 0; i < 128; i++)
-	{
-		float f1 = *(sdta + v->pos);
-		float f2 = *(sdta + v->pos + 1);
-		float gain = f1 + (f2 - f1) * v->frac;
-
-		float mono = gain * centdblut(envShift(v->ampvol)); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];
-		*(ctx->outputbuffer + 2 * i) += mono * panright;
-		*(ctx->outputbuffer + 2 * i + 1) += mono * panLeft;
-		v->frac += v->ratio;
-		while (v->frac >= 1.0f)
-		{
-			v->frac--;
-			v->pos++;
-		}
-		while (v->pos >= v->endloop)
-		{
-			v->pos = v->pos - loopLength + 1;
-		}
-	}
+	insert_node(&(ctx->fadeouts), newNode(v->voice, 4));
 }
 void render(ctx_t *ctx)
 {
@@ -106,7 +80,15 @@ void render(ctx_t *ctx)
 	while (*tracer && (*tracer)->voice)
 	{
 		voice *v = (*tracer)->voice;
-		loop(v, &ctx->channels[v->chid], ctx);
+		loop(v, ctx->outputbuffer);
+		tracer = &(*tracer)->next;
+	}
+	voices = ctx->fadeouts;
+	tracer = &voices;
+	while (*tracer && (*tracer)->voice)
+	{
+		voice *v = (*tracer)->voice;
+		loop(v, ctx->outputbuffer);
 		tracer = &(*tracer)->next;
 	}
 	fwrite(ctx->outputbuffer, ctx->samples_per_frame * 2, 4, ctx->outputFD);

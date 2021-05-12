@@ -1,9 +1,12 @@
+#define listscan 1
+#ifndef listscan
+#include "listscan.c"
+
+#endif
 #ifndef malloc
 #include <mm_malloc.h>
 #endif
-#ifndef voice_h
-#include "voice.c"
-#endif
+
 #define TRUE 1
 #define FALSE 0
 typedef int BOOL;

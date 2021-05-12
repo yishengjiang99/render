@@ -1,5 +1,5 @@
 #ifndef read2_h
-#include "read2.h"
+#include "sf2.h"
 #endif
 #ifndef LUT
 #include "LUT.c"

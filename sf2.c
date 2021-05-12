@@ -4,9 +4,12 @@
 #include <mm_malloc.h>
 #include <string.h>
 #include "sf2.h"
-#include "listscan.c"
 #ifndef voice_h
 #include "voice.c"
+
+#endif
+#ifndef listscan
+#include "listscan.c"
 
 #endif
 #define sr 48000
@@ -59,6 +62,7 @@ int readsf(FILE *fd)
 	readSection(imod);
 	readSection(igen);
 	readSection(shdr);
+
 	printf("readdone");
 	return 1;
 }
@@ -95,7 +99,7 @@ void get_sf(int pid, int bkid, int key, int vel, node **head, int index)
 				{
 					instID = g->val.uAmount;
 				}
-				pgset[g->operator] = g->val.uAmount;
+				pgset[g->operator] = g->val.shAmount;
 			}
 			if (instID == -1)
 			{
@@ -135,6 +139,10 @@ void get_sf(int pid, int bkid, int key, int vel, node **head, int index)
 								*(attributes + i) = igset[i];
 							else if (igdef[i] != -1)
 								*(attributes + i) = igdef[i];
+							else
+							{
+								*(attributes + i) = 0;
+							}
 
 							if (pgset[i] != -1)
 								*(attributes + i) += pgset[i];

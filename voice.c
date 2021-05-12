@@ -5,6 +5,7 @@
 #include "envelope.c"
 #endif
 #define voice_h 1
+
 typedef struct _voice
 {
 	zone_t *z;
