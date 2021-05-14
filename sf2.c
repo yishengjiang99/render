@@ -12,15 +12,12 @@
 #include "listscan.c"
 
 #endif
-#define sr 48000
-
+#define sr 24000
 int readsf(FILE *fd)
 {
-	header_t *header = (header_t *)malloc(sizeof(header_t));
+	sheader_t *header = (sheader_t *)malloc(sizeof(sheader_t));
 	header2_t *h2 = (header2_t *)malloc(sizeof(header2_t));
-	fread(header, sizeof(header_t), 1, fd);
-
-	printf("%.4s %.4s %.4s %u\n", header->name, header->sfbk, header->list, header->size);
+	fread(header, sizeof(sheader_t), 1, fd);
 	fread(h2, sizeof(header2_t), 1, fd);
 	printf("\n%.4s %u", h2->name, h2->size);
 	info = malloc(h2->size);
@@ -62,13 +59,12 @@ int readsf(FILE *fd)
 	readSection(imod);
 	readSection(igen);
 	readSection(shdr);
-
-	printf("readdone");
 	return 1;
 }
 
-void get_sf(int pid, int bkid, int key, int vel, node **head, int index)
+void get_sf(int pid, int bkid, int key, int vel, node **head, int chid)
 {
+	node **voicepoly = NULL;
 	short *attributes;
 	short igset[60] = {-1};
 	int instID = -1;
@@ -78,6 +74,7 @@ void get_sf(int pid, int bkid, int key, int vel, node **head, int index)
 	{
 		if (phdrs[i].bankId != bkid || phdrs[i].pid != pid)
 			continue;
+		printf("\n%s %d", phdrs[i].name, key);
 		int lastbag = phdrs[i + 1].pbagNdx;
 		for (int j = phdrs[i].pbagNdx; j < lastbag; j++)
 		{
@@ -151,8 +148,10 @@ void get_sf(int pid, int bkid, int key, int vel, node **head, int index)
 						}
 						zone_t *z = (zone_t *)attributes;
 						voice *v = newVoice(z, key, vel);
+						v->chid = chid;
 
-						insert_node(head, newNode(v, index));
+						insert_node(head, newNode(v, chid));
+						return;
 					}
 				}
 			}
@@ -160,3 +159,8 @@ void get_sf(int pid, int bkid, int key, int vel, node **head, int index)
 	}
 	//return head;
 }
+
+// int main()
+// {
+// 	readsf(fopen("file.sf2", "rb"));
+// }

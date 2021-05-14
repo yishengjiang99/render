@@ -30,7 +30,7 @@ typedef struct
 	unsigned int size;
 	char sfbk[4];
 	char list[4];
-} header_t;
+} sheader_t;
 
 typedef struct
 {

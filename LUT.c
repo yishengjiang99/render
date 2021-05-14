@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <math.h>
+#ifndef p2over1200LUT
 #include "luts.c"
 
+#endif
 static inline float p2over1200(float x)
 {
 	if (x < -12000)
@@ -25,4 +27,12 @@ static float centdblut(int x)
 		x = 960;
 
 	return centdbLUT[x];
+}
+static float midiCBlut(int midi)
+{
+	if (midi < 0)
+		return -960.0f;
+	if (midi > 960)
+		return 0.0f;
+	return midiCB[midi];
 }

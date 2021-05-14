@@ -43,9 +43,26 @@ void initLUTs()
 		fprintf(f, "%ff,", powf(10.0f, i / -200.0));
 	}
 	fprintf(f, "0.0f};");
+
+	fprintf(f, "float midiCB[129] = { 960.f, ");
+
+	for (int n = 1; n < 128; n++)
+	{
+		fprintf(f, "%ff,", -200.0 * logf(n / 127.0f));
+	}
+	fprintf(f, "0.0f};");
+
+	fprintf(f, "float velCB[129] = { 960.f, ");
+
+	for (int n = 1; n < 128; n++)
+	{
+		fprintf(f, "%ff,", -200.0 * logf(n * n / 127.0f / 127.0f));
+	}
+	fprintf(f, "0.0f};");
 }
 
 int main()
 {
+
 	initLUTs();
 }

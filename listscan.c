@@ -14,7 +14,8 @@ typedef int BOOL;
 typedef struct _node
 {
 	voice *voice;
-	int index;
+
+	uint32_t index;
 	struct _node *next;
 } node;
 
@@ -30,6 +31,7 @@ void insert_node(node **head, node *newp)
 	newp->next = *tracer;
 	*tracer = newp;
 }
+
 node *remove_node(node **head, int index)
 {
 	BOOL present = FALSE;

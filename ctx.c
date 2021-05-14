@@ -9,67 +9,48 @@
 #include "voice.c"
 
 #endif
+#include "ctx.h"
 #include "shift.c"
-
-typedef struct
-{
-	node *fadeouts; //voices after release
-	int program_number;
-	float midi_gain_cb;
-	float midi_pan;
-} channel_t;
-
-typedef struct _ctx
-{
-	int sampleRate;
-	int currentFrame_start;
-	int samples_per_frame;
-	channel_t channels[16];
-	node *voices;
-	node *fadeouts;
-	float *outputbuffer;
-	FILE *outputFD;
-} ctx_t;
-
+void loop(voice *v, float *output, channel_t ch, int n);
 ctx_t *init_ctx()
 {
-	/*
-	(-200.0 / 960) *
-                    Math.log10((note.velocity * note.velocity) / (127 * 127))
-										*/
 	ctx_t *ctx = (ctx_t *)malloc(sizeof(ctx_t));
 	ctx->sampleRate = 48000;
-	ctx->currentFrame_start = 0;
+	ctx->currentFrame = 0;
 	ctx->samples_per_frame = 128;
 	for (int i = 0; i < 16; i++)
 	{
-		ctx->channels[i].program_number = 0;
-		ctx->channels[i].midi_gain_cb = 0;
+		ctx->channels[i].program_number = i * 7;
+		ctx->channels[i].midi_gain_cb = 90;
 	}
 	ctx->voices = 0;
 	ctx->fadeouts = 0;
+	ctx->refcnt = 0;
+	ctx->mastVol = 1.0f;
 	ctx->outputFD = NULL;
 	ctx->outputbuffer = (float *)malloc(sizeof(float) * ctx->samples_per_frame * 2);
 	return ctx;
 }
 
-void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel)
+void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when)
 {
-	int programNumber = ctx->channels[channelNumber].program_number;
 
-	get_sf(programNumber & 0x7f, programNumber & 0x80, midi, vel, &(ctx->voices), channelNumber << 8 | midi);
+	int programNumber = ctx->channels[channelNumber].program_number;
+	ctx->refcnt++;
+	get_sf(programNumber & 0x7f, programNumber & 0x80, midi, vel, &(ctx->voices), channelNumber);
 }
 
 void noteOff(ctx_t *ctx, int ch, int midi)
 {
 	node *voices = ctx->voices;
 	node **tracer = &voices;
-	node *v = remove_node(&voices, ch << 8 | midi);
-	if (!v)
-		printf("not found %d %d", ch, midi);
-
-	adsrRelease(v->voice->ampvol);
-	insert_node(&(ctx->fadeouts), newNode(v->voice, 4));
+	node *v = remove_node(&voices, ch);
+	ctx->refcnt--;
+	if (v && v->voice != NULL)
+	{
+		adsrRelease(v->voice->ampvol);
+		insert_node(&(ctx->fadeouts), newNode(v->voice, 4));
+	}
 }
 void render(ctx_t *ctx)
 {
@@ -80,18 +61,47 @@ void render(ctx_t *ctx)
 	while (*tracer && (*tracer)->voice)
 	{
 		voice *v = (*tracer)->voice;
-		loop(v, ctx->outputbuffer);
+		loop(v, ctx->outputbuffer, ctx->channels[v->chid], ctx->refcnt);
 		tracer = &(*tracer)->next;
 	}
-	voices = ctx->fadeouts;
-	tracer = &voices;
-	while (*tracer && (*tracer)->voice)
+	// voices = ctx->fadeouts;
+	// tracer = &voices;
+	// while (*tracer && (*tracer)->voice)
+	// {
+	// 	voice *v = (*tracer)->voice;
+	// 	loop(v, ctx->outputbuffer, ctx->channels[v->chid], ctx->refcnt);
+	// 	if (v->ampvol->release_rate < 128)
+	// 	{
+	// 		ctx->fadeouts = (*tracer)->next;
+	// 		break;
+	// 	}
+	// 	tracer = &(*tracer)->next;
+	// }
+	ctx->currentFrame++;
+	float maxv = 1.0f, redradio = 1.0f;
+	float postGain = ctx->mastVol;
+	for (int i = 0; i < ctx->samples_per_frame; i++)
 	{
-		voice *v = (*tracer)->voice;
-		loop(v, ctx->outputbuffer);
-		tracer = &(*tracer)->next;
+		ctx->outputbuffer[i] *= postGain;
+		float absf = ctx->outputbuffer[i] > 0.f ? ctx->outputbuffer[i] : -1 * ctx->outputbuffer[i];
+
+		if (absf >= maxv)
+		{
+			fprintf(stderr, "clipping at %f\n", absf);
+			maxv = absf;
+		}
 	}
-	fwrite(ctx->outputbuffer, ctx->samples_per_frame * 2, 4, ctx->outputFD);
+	if (maxv > 1.0f)
+	{
+		// for (int i = 0; i < ctx->samples_per_frame; i++)
+		// {
+		// 	ctx->outputbuffer[i] = ctx->outputbuffer[i] / maxv;
+		// 	if (ctx->outputbuffer[i] > 1.0f)
+		// 		ctx->outputbuffer[i] = 1.0f;
+		// }
+	}
+	if (ctx->outputFD)
+		fwrite(ctx->outputbuffer, ctx->samples_per_frame * 2, 4, ctx->outputFD);
 }
 void render_fordr(ctx_t *ctx, float duration)
 {
@@ -104,4 +114,39 @@ void render_fordr(ctx_t *ctx, float duration)
 void fffclose(ctx_t *x)
 {
 	fclose(x->outputFD);
+}
+
+void loop(voice *v, float *output, channel_t ch, int n)
+{
+	uint32_t loopLength = v->endloop - v->startloop;
+	float attentuate = v->z->Attenuation + velCB[v->velocity] + ch.midi_gain_cb;
+	//printf("\n%f", centdblut(attentuate));
+	short pan = v->z->Pan;
+
+	float panLeft = sqrtf(0.5f - pan / 1000.0f);
+	float panright = sqrtf(0.5f + pan / 1000.0f);
+	for (int i = 0; i < 128; i++)
+	{
+		float f1 = *(sdta + v->pos);
+		float f2 = *(sdta + v->pos + 1);
+		float gain = f1 + (f2 - f1) * v->frac;
+
+		float mono = gain * centdblut(envShift(v->ampvol) + (int)attentuate); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];
+		*(output + 2 * i) += mono * panright;
+		*(output + 2 * i + 1) += mono * panLeft;
+		if (mono > 1.0f)
+		{
+			printf("\nmidichan %d %f %f\nn=%f ", n, centdblut(v->z->Attenuation + velCB[v->velocity] + ch.midi_gain_cb), ch.midi_gain_cb, velCB[v->velocity]);
+		}
+		v->frac += v->ratio;
+		while (v->frac >= 1.0f)
+		{
+			v->frac--;
+			v->pos++;
+		}
+		while (v->pos >= v->endloop)
+		{
+			v->pos = v->pos - loopLength + 1;
+		}
+	}
 }

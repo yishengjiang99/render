@@ -1,6 +1,3 @@
-#ifndef read2_h
-#include "sf2.c"
-#endif
 #ifndef adsr
 #include "envelope.c"
 #endif
@@ -18,6 +15,7 @@ typedef struct _voice
 	int midi;
 	int velocity;
 	int chid;
+
 } voice;
 
 voice *newVoice(zone_t *z, int midi, int vel)
@@ -30,6 +28,7 @@ voice *newVoice(zone_t *z, int midi, int vel)
 	v->endloop = sh->endloop + ((unsigned short)(z->EndLoopAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->EndLoopAddrOfs & 0x7f);
 	v->startloop = sh->startloop + (unsigned short)(z->StartLoopAddrCoarseOfs & 0x7f << 15) + (unsigned short)(z->StartLoopAddrOfs & 0x7f);
 	v->ampvol = newEnvelope(z->VolEnvAttack, z->VolEnvRelease, z->VolEnvDecay, z->VolEnvSustain, 48000);
+
 	short rt = z->OverrideRootKey > -1 ? z->OverrideRootKey : sh->originalPitch;
 	float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
 	float octaveDivv = ((float)midi * 100 - sampleTone) / 1200.0f;

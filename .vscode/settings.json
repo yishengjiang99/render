@@ -14,6 +14,11 @@
 		"varint.h": "c",
 		"tml.h": "c",
 		"__node_handle": "c",
-		"chrono": "c"
+		"chrono": "c",
+		"complex": "c",
+		"ctx.h": "c",
+		"sf2.h": "c",
+		"unistd.h": "c",
+		"pthread.h": "c"
 	}
 }

@@ -1,21 +1,29 @@
 #include "ctx.c"
 #include <assert.h>
 #include "call_ffp.c"
-void cb(void *vd)
+#include <termios.h>
+void cb(voice *v)
 {
-	voice *v = (voice *)vd;
 
 	printf("%f %f %d %d\n", v->ratio, v->ampvol->db_attenuate, v->startloop, v->endloop);
 }
-// int main()
-// {
-// 	// initLUTs();
-// 	readsf(fopen("file.sf2", "rb"));
-// 	ctx_t *c = init_ctx();
-// 	c->outputFD = ffp(2, 44100);
-// 	c->channels[0].program_number = 55;
-// 	noteOn(c, 0, 55, 55);
-// 	printNode(&c->voices, &cb);
-// 	render_fordr(c, .5);
-// 	return 9;
-// }
+int main()
+{
+	// initLUTs();
+	readsf(fopen("file.sf2", "rb"));
+	ctx_t *c = init_ctx();
+	c->outputFD = ffp(2, 44100);
+	c->channels[0].program_number = 0;
+
+	noteOn(c, 0, 33, 55, c->currentFrame + 1);
+
+	render_fordr(c, 0.25);
+	noteOff(c, 0, 55);
+	noteOn(c, 0, 77, 66, c->currentFrame + 1);
+	render_fordr(c, 0.25);
+	noteOff(c, 0, 55);
+	noteOn(c, 0, 44, 77, c->currentFrame + 1);
+	printNode(&c->voices, &cb);
+	render_fordr(c, 4.5);
+	return 9;
+}
