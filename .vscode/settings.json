@@ -19,6 +19,22 @@
 		"ctx.h": "c",
 		"sf2.h": "c",
 		"unistd.h": "c",
-		"pthread.h": "c"
+		"pthread.h": "c",
+		"typeinfo": "c",
+		"__functional_03": "c",
+		"functional": "c",
+		"__functional_base": "c",
+		"__functional_base_03": "c",
+		"__tuple": "c",
+		"algorithm": "c",
+		"type_traits": "c",
+		"iterator": "c",
+		"limits": "c",
+		"memory": "c",
+		"ratio": "c",
+		"tuple": "c",
+		"utility": "c",
+		"__string": "c",
+		"locale": "c"
 	}
 }

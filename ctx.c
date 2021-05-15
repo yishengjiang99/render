@@ -10,7 +10,6 @@
 
 #endif
 #include "ctx.h"
-#include "shift.c"
 void loop(voice *v, float *output, channel_t ch, int n);
 ctx_t *init_ctx()
 {

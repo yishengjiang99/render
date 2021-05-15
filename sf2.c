@@ -62,7 +62,7 @@ int readsf(FILE *fd)
 	return 1;
 }
 
-void get_sf(int pid, int bkid, int key, int vel, node **head, int chid)
+zone_t *get_sf(int pid, int bkid, int key, int vel, node **head, int chid)
 {
 	node **voicepoly = NULL;
 	short *attributes;
@@ -149,9 +149,7 @@ void get_sf(int pid, int bkid, int key, int vel, node **head, int chid)
 						zone_t *z = (zone_t *)attributes;
 						voice *v = newVoice(z, key, vel);
 						v->chid = chid;
-
-						insert_node(head, newNode(v, chid));
-						return;
+						return *v;
 					}
 				}
 			}
@@ -159,8 +157,19 @@ void get_sf(int pid, int bkid, int key, int vel, node **head, int chid)
 	}
 	//return head;
 }
+#include <string.h>
 
-// int main()
-// {
-// 	readsf(fopen("file.sf2", "rb"));
-// }
+#include <strings.h>
+void find_inst(char *str)
+{
+	int i = 0;
+	for (; i < nphdrs - 1; i++)
+	{
+		if (strstr(phdrs[i].name, str) != NULL)
+		{
+			printf("\n %i, 	%s", i, phdrs[i].name);
+			break;
+		}
+		printf("\n%s", phdrs[i].name);
+	}
+}
