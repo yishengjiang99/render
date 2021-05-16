@@ -148,6 +148,7 @@ zone_t *get_sf(int pid, int bkid, int key, int vel)
 								*(attributes + i) += pgdef[i];
 						}
 						z = (zone_t *)attributes;
+
 					}
 				}
 			}
@@ -155,8 +156,19 @@ zone_t *get_sf(int pid, int bkid, int key, int vel)
 	}
 	//return head;
 }
+#include <string.h>
 
-// int main()
-// {
-// 	readsf(fopen("file.sf2", "rb"));
-// }
+#include <strings.h>
+void find_inst(char *str)
+{
+	int i = 0;
+	for (; i < nphdrs - 1; i++)
+	{
+		if (strstr(phdrs[i].name, str) != NULL)
+		{
+			printf("\n %i, 	%s", i, phdrs[i].name);
+			break;
+		}
+		printf("\n%s", phdrs[i].name);
+	}
+}

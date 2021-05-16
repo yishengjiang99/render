@@ -11,6 +11,7 @@
 #endif
 #include "ctx.h"
 #include "shift.c"
+
 ctx_t *init_ctx()
 {
 	ctx_t *ctx = (ctx_t *)malloc(sizeof(ctx_t));

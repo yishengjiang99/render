@@ -17,6 +17,7 @@ void loop(voice *v, float *output)
 		float mono = gain * centdblut(envShift(v->ampvol) + (int)attentuate); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];
 		*(output + 2 * i) += mono * panright;
 		*(output + 2 * i + 1) += mono * panLeft;
+
 		v->frac += v->ratio;
 		while (v->frac >= 1.0f)
 		{
