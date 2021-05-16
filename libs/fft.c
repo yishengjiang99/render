@@ -38,15 +38,6 @@ typedef struct
 #define Re(z) (z).real
 #define Im(z) (z).imag
 
-void input_time_domain_floats(int n, float *reals, complex *x)
-{
-	while (reals++ && x++ && n--)
-	{
-		x->real = *reals;
-		x->imag = 0.0f;
-	}
-	fft(x, 12L, sin_table)
-}
 void FFT(complex *x, int n, double *stbl)
 {
 	long size;
@@ -206,19 +197,19 @@ void iFFT(complex *X, int n, double *stbl)
 	}
 }
 
-void sin_table(double *stbl, int n)
-{
-	register long size, i;
-	double theta;
+// void sin_table(double *stbl, int n)
+// {
+// 	register long size, i;
+// 	double theta;
 
-	size = 1L << (n - 2);
-	theta = HALFPI / size;
+// 	size = 1L << (n - 2);
+// 	theta = HALFPI / size;
 
-	for (i = 0; i < size; i++)
-	{
-		stbl[i] = sin(theta * i);
-	}
-}
+// 	for (i = 0; i < size; i++)
+// 	{
+// 		stbl[i] = sin(theta * i);
+// 	}
+// }
 
 void bit_reverse(register complex *x, int n)
 {
@@ -244,5 +235,15 @@ void bit_reverse(register complex *x, int n)
 		}
 	}
 }
-#include <stdio.h>
-#include <stdlib.h>
+
+void input_time_domain_floats(int n, float *reals, complex *x, double *stbl)
+{
+	complex *ptr = x;
+	while (n-- > 0)
+	{
+		ptr->real = *reals;
+		ptr->imag = 0.0f;
+		ptr++;
+	}
+	FFT(x, 10L, stbl);
+}

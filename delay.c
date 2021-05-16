@@ -8,12 +8,11 @@ typedef struct _delay
 	uint32_t write_offset;
 	float *delaybuffer;
 	float *output;
-	float *inputwave;
 } delay_data;
 
 delay_data *newDelay(uint32_t delaySamples)
 {
-	delay_data *dl = (delay_data *)malloc(sizeof(delay_data *));
+	delay_data *dl = (delay_data *)malloc(sizeof(delay_data));
 	dl->buffer_size = delaySamples;
 	dl->delay_time_in_samples = delaySamples;
 	dl->input_size = 128;
@@ -21,9 +20,14 @@ delay_data *newDelay(uint32_t delaySamples)
 	dl->delaybuffer = (float *)malloc(sizeof(float) * delaySamples);
 	return dl;
 }
+
+float *inputPtr(delay_data *dl)
+{
+	return dl->delaybuffer + dl->write_offset;
+}
 void delay_snds(delay_data *delay)
 {
-	memcpy(delay->delaybuffer + delay->write_offset, delay->inputwave, delay->input_size);
+	//	memcpy(delay->delaybuffer + delay->write_offset, delay->inputwave, delay->input_size);
 
 	//* in forcing the write ptr to neve wraparound in middle of a block
 	// we makesd ure read ptr doesn't do same as well.

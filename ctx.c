@@ -30,7 +30,10 @@ ctx_t *init_ctx()
 	ctx->outputbuffer = (float *)malloc(sizeof(float) * ctx->samples_per_frame * 2);
 	return ctx;
 }
-
+void loopctx(voice *v, ctx_t *ctx)
+{
+	loop(v, ctx->outputbuffer);
+}
 void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when)
 {
 	int programNumber = ctx->channels[channelNumber].program_number;

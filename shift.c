@@ -30,7 +30,3 @@ void loop(voice *v, float *output)
 		}
 	}
 }
-void loopctx(voice *v, ctx_t *ctx)
-{
-	loop(v, ctx->outputbuffer);
-}
