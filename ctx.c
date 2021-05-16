@@ -10,7 +10,8 @@
 
 #endif
 #include "ctx.h"
-void loop(voice *v, float *output, channel_t ch, int n);
+#include "shift.c"
+
 ctx_t *init_ctx()
 {
 	ctx_t *ctx = (ctx_t *)malloc(sizeof(ctx_t));
@@ -22,8 +23,7 @@ ctx_t *init_ctx()
 		ctx->channels[i].program_number = i * 7;
 		ctx->channels[i].midi_gain_cb = 90;
 	}
-	ctx->voices = 0;
-	ctx->fadeouts = 0;
+	ctx->voices = (voice *)malloc(sizeof(voice) * 16);
 	ctx->refcnt = 0;
 	ctx->mastVol = 1.0f;
 	ctx->outputFD = NULL;
@@ -33,49 +33,32 @@ ctx_t *init_ctx()
 
 void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when)
 {
-
 	int programNumber = ctx->channels[channelNumber].program_number;
-	ctx->refcnt++;
-	get_sf(programNumber & 0x7f, programNumber & 0x80, midi, vel, &(ctx->voices), channelNumber);
+	voice *v1 = ctx->voices + 2 * channelNumber + 0;
+	voice *v2 = ctx->voices + 2 * channelNumber + 1;
+	zone_t *z = get_sf(programNumber & 0x7f, programNumber & 0x80, midi, vel);
+	if (z)
+		applyZone(ctx->voices + 2 * channelNumber + 0, z, midi, vel);
 }
 
 void noteOff(ctx_t *ctx, int ch, int midi)
 {
-	node *voices = ctx->voices;
-	node **tracer = &voices;
-	node *v = remove_node(&voices, ch);
-	ctx->refcnt--;
-	if (v && v->voice != NULL)
+	if ((ctx->voices + ch * 2)->midi == midi)
 	{
-		adsrRelease(v->voice->ampvol);
-		insert_node(&(ctx->fadeouts), newNode(v->voice, 4));
+		adsrRelease((ctx->voices + ch * 2)->ampvol);
 	}
 }
 void render(ctx_t *ctx)
 {
 	bzero(ctx->outputbuffer, sizeof(float) * ctx->samples_per_frame * 2);
-
-	node *voices = ctx->voices;
-	node **tracer = &voices;
-	while (*tracer && (*tracer)->voice)
+	for (int i = 0; i < 16; i++)
 	{
-		voice *v = (*tracer)->voice;
-		loop(v, ctx->outputbuffer, ctx->channels[v->chid], ctx->refcnt);
-		tracer = &(*tracer)->next;
+		voice *v = ctx->voices + i;
+
+		if ((ctx->voices + i)->z != NULL)
+			loopctx(ctx->voices + i, ctx);
 	}
-	// voices = ctx->fadeouts;
-	// tracer = &voices;
-	// while (*tracer && (*tracer)->voice)
-	// {
-	// 	voice *v = (*tracer)->voice;
-	// 	loop(v, ctx->outputbuffer, ctx->channels[v->chid], ctx->refcnt);
-	// 	if (v->ampvol->release_rate < 128)
-	// 	{
-	// 		ctx->fadeouts = (*tracer)->next;
-	// 		break;
-	// 	}
-	// 	tracer = &(*tracer)->next;
-	// }
+
 	ctx->currentFrame++;
 	float maxv = 1.0f, redradio = 1.0f;
 	float postGain = ctx->mastVol;
@@ -92,12 +75,12 @@ void render(ctx_t *ctx)
 	}
 	if (maxv > 1.0f)
 	{
-		// for (int i = 0; i < ctx->samples_per_frame; i++)
-		// {
-		// 	ctx->outputbuffer[i] = ctx->outputbuffer[i] / maxv;
-		// 	if (ctx->outputbuffer[i] > 1.0f)
-		// 		ctx->outputbuffer[i] = 1.0f;
-		// }
+		for (int i = 0; i < ctx->samples_per_frame; i++)
+		{
+			ctx->outputbuffer[i] = ctx->outputbuffer[i] / maxv;
+			if (ctx->outputbuffer[i] > 1.0f)
+				ctx->outputbuffer[i] = 1.0f;
+		}
 	}
 	if (ctx->outputFD)
 		fwrite(ctx->outputbuffer, ctx->samples_per_frame * 2, 4, ctx->outputFD);
@@ -113,39 +96,4 @@ void render_fordr(ctx_t *ctx, float duration)
 void fffclose(ctx_t *x)
 {
 	fclose(x->outputFD);
-}
-
-void loop(voice *v, float *output, channel_t ch, int n)
-{
-	uint32_t loopLength = v->endloop - v->startloop;
-	float attentuate = v->z->Attenuation + velCB[v->velocity] + ch.midi_gain_cb;
-	//printf("\n%f", centdblut(attentuate));
-	short pan = v->z->Pan;
-
-	float panLeft = sqrtf(0.5f - pan / 1000.0f);
-	float panright = sqrtf(0.5f + pan / 1000.0f);
-	for (int i = 0; i < 128; i++)
-	{
-		float f1 = *(sdta + v->pos);
-		float f2 = *(sdta + v->pos + 1);
-		float gain = f1 + (f2 - f1) * v->frac;
-
-		float mono = gain * centdblut(envShift(v->ampvol) + (int)attentuate); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];
-		*(output + 2 * i) += mono * panright;
-		*(output + 2 * i + 1) += mono * panLeft;
-		if (mono > 1.0f)
-		{
-			printf("\nmidichan %d %f %f\nn=%f ", n, centdblut(v->z->Attenuation + velCB[v->velocity] + ch.midi_gain_cb), ch.midi_gain_cb, velCB[v->velocity]);
-		}
-		v->frac += v->ratio;
-		while (v->frac >= 1.0f)
-		{
-			v->frac--;
-			v->pos++;
-		}
-		while (v->pos >= v->endloop)
-		{
-			v->pos = v->pos - loopLength + 1;
-		}
-	}
 }

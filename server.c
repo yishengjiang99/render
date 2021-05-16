@@ -15,9 +15,9 @@ void *rend_fn(void *arg)
 	long elapsed;
 	for (;;)
 	{
-		clock_gettime(CLOCK_REALTIME, &start);
+		clock_gettime(0, &start);
 		render(ctx);
-		clock_gettime(CLOCK_REALTIME, &stop);
+		clock_gettime(0, &stop);
 		elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
 		usleep(1e3 - elapsed);
 	}

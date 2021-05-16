@@ -13,8 +13,7 @@ typedef struct _ctx
 	int refcnt;
 	float mastVol;
 	channel_t channels[16];
-	node *voices;
-	node *fadeouts;
+	voice *voices;
 	float *outputbuffer;
 	FILE *outputFD;
 } ctx_t;

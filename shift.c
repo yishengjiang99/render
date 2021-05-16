@@ -1,9 +1,9 @@
 
-void loop(voice *v, float *output, int n)
+
+void loop(voice *v, float *output)
 {
 	uint32_t loopLength = v->endloop - v->startloop;
 	float attentuate = v->z->Attenuation + velCB[v->velocity];
-	//printf("\n%f", centdblut(attentuate));
 	short pan = v->z->Pan;
 
 	float panLeft = sqrtf(0.5f - pan / 1000.0f);
@@ -17,10 +17,7 @@ void loop(voice *v, float *output, int n)
 		float mono = gain * centdblut(envShift(v->ampvol) + (int)attentuate); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];
 		*(output + 2 * i) += mono * panright;
 		*(output + 2 * i + 1) += mono * panLeft;
-		// if (mono > 1.0f)
-		// {
-		// 	printf("\nmidichan %d %f %f\nn=%f ", n, centdblut(v->z->Attenuation + velCB[v->velocity] + ch.midi_gain_cb), ch.midi_gain_cb, velCB[v->velocity]);
-		// }
+
 		v->frac += v->ratio;
 		while (v->frac >= 1.0f)
 		{
@@ -32,4 +29,8 @@ void loop(voice *v, float *output, int n)
 			v->pos = v->pos - loopLength + 1;
 		}
 	}
+}
+void loopctx(voice *v, ctx_t *ctx)
+{
+	loop(v, ctx->outputbuffer);
 }

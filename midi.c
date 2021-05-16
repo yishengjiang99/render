@@ -15,15 +15,17 @@
 
 void *cb(void *args)
 {
+	ctx_t *ctx = (ctx_t *)args;
 	struct timespec start, stop;
 	long elapsed;
-	ctx_t *ctx = (ctx_t *)args;
-	while (1)
+	for (;;)
 	{
-
-		clock_gettime(1, &start);
+		clock_gettime(0, &start);
 		render(ctx);
-		usleep(3 * MSEC);
+		clock_gettime(0, &stop);
+		elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
+
+		usleep(1e3 * .9); // - elapsed);
 	}
 
 	return NULL;
@@ -32,12 +34,14 @@ int main()
 {
 	ctx_t *ctx = init_ctx();
 	readsf(fopen("file.sf2", "rb"));
-	//ctx->outputFD = ffplay("wav", "output.wav"); //2, 48000);
-	ctx->outputFD = ffp(2, 48000);
-	ctx->outputFD = popen("ffmpeg -y -f f32le -i pipe:0 -ac 2 -f flac 5558.flac", "w");
+
+	sleep(3);
+	ctx->outputFD = formatpcm("mp3", "banananaaa.mp3");
+
 	tml_message *m = tml_load_filename("song.mid");
 	int msec = 0;
-	//	ctx->outputFD = fopen("/dev/stdout", "w");
+	//	fmkfifo('ffr');
+
 	pthread_t t;
 	pthread_create(&t, NULL, &cb, (void *)ctx);
 	while (m != NULL)
@@ -62,18 +66,15 @@ int main()
 			}
 			case TML_ALL_NOTES_OFF:
 			case TML_ALL_SOUND_OFF:
-				ctx->voices = 0;
-				ctx->fadeouts = 0;
+
 				break;
 			case TML_PROGRAM_CHANGE:
-				if (m->program == 48)
-				{
-					m->program = 48 + m->channel + 1;
-				}
+
 				ctx->channels[m->channel].program_number = m->program;
 
 				break;
 			case TML_NOTE_ON:
+
 				noteOn(ctx, (int)m->channel, (int)m->key, (int)m->velocity, m->time);
 				break;
 			case TML_NOTE_OFF:
