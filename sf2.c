@@ -37,6 +37,7 @@ int readsf(FILE *fd)
 		*trace++ = *(data + i) / 32767.0f;
 	}
 	//free(data);
+	FILE *cache = fopen("cache.dat", "wb");
 
 #define readSection(section)                  \
 	fread(sh, sizeof(section_header), 1, fd);   \
@@ -62,9 +63,9 @@ int readsf(FILE *fd)
 	return 1;
 }
 
-void get_sf(int pid, int bkid, int key, int vel, node **head, int chid)
+zone_t *get_sf(int pid, int bkid, int key, int vel)
 {
-	node **voicepoly = NULL;
+	zone_t *z;
 	short *attributes;
 	short igset[60] = {-1};
 	int instID = -1;
@@ -74,7 +75,7 @@ void get_sf(int pid, int bkid, int key, int vel, node **head, int chid)
 	{
 		if (phdrs[i].bankId != bkid || phdrs[i].pid != pid)
 			continue;
-		printf("\n%s %d", phdrs[i].name, key);
+		//	printf("\n%s %d", phdrs[i].name, key);
 		int lastbag = phdrs[i + 1].pbagNdx;
 		for (int j = phdrs[i].pbagNdx; j < lastbag; j++)
 		{
@@ -146,12 +147,7 @@ void get_sf(int pid, int bkid, int key, int vel, node **head, int chid)
 							else if (pgdef[i] != -1)
 								*(attributes + i) += pgdef[i];
 						}
-						zone_t *z = (zone_t *)attributes;
-						voice *v = newVoice(z, key, vel);
-						v->chid = chid;
-
-						insert_node(head, newNode(v, chid));
-						return;
+						z = (zone_t *)attributes;
 					}
 				}
 			}

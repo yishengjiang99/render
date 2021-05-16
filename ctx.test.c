@@ -15,7 +15,7 @@ int main()
 	c->outputFD = ffp(2, 44100);
 	c->channels[0].program_number = 0;
 
-	noteOn(c, 0, 33, 55, c->currentFrame + 1);
+	noteOn(c, 0, 33, 55, 5);
 
 	render_fordr(c, 0.25);
 	noteOff(c, 0, 55);
@@ -23,7 +23,6 @@ int main()
 	render_fordr(c, 0.25);
 	noteOff(c, 0, 55);
 	noteOn(c, 0, 44, 77, c->currentFrame + 1);
-	printNode(&c->voices, &cb);
 	render_fordr(c, 4.5);
 	return 9;
 }

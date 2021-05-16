@@ -13,7 +13,7 @@ typedef int BOOL;
 
 typedef struct _node
 {
-	voice *voice;
+	void *voice;
 
 	uint32_t index;
 	struct _node *next;
@@ -21,15 +21,24 @@ typedef struct _node
 
 void insert_node(node **head, node *newp)
 {
+	newp->next = *head;
+	*head = newp;
+}
+node *find_node(node **head, int index)
+{
+	BOOL present = FALSE;
 	node **tracer = head;
 
-	while ((*tracer) && (*tracer)->index < newp->index <= 0)
+	while ((*tracer) && !(present = (index == (*tracer)->index)))
+		;
+	if (present)
 	{
-		tracer = &(*tracer)->next;
+		return *tracer;
 	}
-
-	newp->next = *tracer;
-	*tracer = newp;
+	else
+	{
+		return NULL;
+	}
 }
 
 node *remove_node(node **head, int index)
@@ -49,7 +58,7 @@ node *remove_node(node **head, int index)
 	return NULL;
 }
 
-node *newNode(voice *v, int index)
+node *newNode(void *v, int index)
 {
 	node *nd = (node *)malloc(sizeof(node));
 	nd->voice = v;
@@ -57,7 +66,16 @@ node *newNode(voice *v, int index)
 	nd->next = 0;
 	return nd;
 }
-void printNode(node **start, void (*cb)(voice *voice)) //(void) cb(void *data))
+void iterate(void *opaque, node **start, void (*cb)(void *opaque, void *voice))
+{
+	node **tracer = start;
+	while ((*tracer) != NULL && (*tracer)->voice)
+	{
+		cb(opaque, (*tracer)->voice);
+		tracer = &(*tracer)->next;
+	}
+}
+void printNode(node **start, void (*cb)(void *voice)) //(void) cb(void *data))
 {
 	node **tracer = start;
 

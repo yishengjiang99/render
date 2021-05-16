@@ -2,7 +2,7 @@
 FILE *ffp(int ac, int ar)
 {
   char cmd[1024];
-  sprintf(cmd, "ffplay -loglevel panic -i pipe:0 -f f32le -ac %d -ar %d", ac, ar);
+  sprintf(cmd, "ffplay -i pipe:0 -f f32le -ac %d -ar %d", ac, ar);
   FILE *ffplay = popen(cmd, "w");
   if (!ffplay)
     perror("cmd fail");

@@ -17,11 +17,10 @@ typedef struct _voice
 	int chid;
 
 } voice;
-
-voice *newVoice(zone_t *z, int midi, int vel)
+void applyZone(voice *v, zone_t *z, int midi, int vel)
 {
 	shdrcast *sh = (shdrcast *)(shdrs + z->SampleId);
-	voice *v = (voice *)malloc(sizeof(voice));
+	v->z = z;
 	v->sample = sh;
 	v->start = sh->start + ((unsigned short)(z->StartAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->StartAddrOfs & 0x7f);
 	v->end = sh->end + ((unsigned short)(z->EndAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->EndAddrOfs & 0x7f);
@@ -39,5 +38,10 @@ voice *newVoice(zone_t *z, int midi, int vel)
 	v->z = z;
 	v->midi = midi;
 	v->velocity = vel;
+}
+voice *newVoice(zone_t *z, int midi, int vel)
+{
+	voice *v = (voice *)malloc(sizeof(voice));
+	applyZone(v, z, midi, vel);
 	return v;
 }
