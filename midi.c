@@ -25,7 +25,7 @@ void *cb(void *args)
 		clock_gettime(0, &stop);
 		elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
 
-		usleep(1e3 * .9); // - elapsed);
+		usleep(1e3 - elapsed);
 	}
 
 	return NULL;
@@ -36,7 +36,7 @@ int main()
 	readsf(fopen("file.sf2", "rb"));
 
 	sleep(3);
-	ctx->outputFD = formatpcm("mp3", "banananaaa.mp3");
+	ctx->outputFD = formatpcm("wave", "banananaaa.wav");
 
 	tml_message *m = tml_load_filename("song.mid");
 	int msec = 0;

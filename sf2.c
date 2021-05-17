@@ -8,10 +8,7 @@
 #include "voice.c"
 
 #endif
-#ifndef listscan
-#include "listscan.c"
 
-#endif
 #define sr 24000
 int readsf(FILE *fd)
 {
