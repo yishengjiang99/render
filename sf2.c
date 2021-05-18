@@ -62,7 +62,8 @@ int readsf(FILE *fd)
 
 zone_t *get_sf(int pid, int bkid, int key, int vel)
 {
-	zone_t *z;
+	zone_t *head = NULL;
+	zone_t **z = &head;
 	short *attributes;
 	short igset[60] = {-1};
 	int instID = -1;
@@ -144,12 +145,12 @@ zone_t *get_sf(int pid, int bkid, int key, int vel)
 							else if (pgdef[i] != -1)
 								*(attributes + i) += pgdef[i];
 						}
-						z = (zone_t *)attributes;
+						*z++ = (zone_t *)attributes;
 					}
 				}
 			}
 		}
 	}
 	//return head;
-	return z;
+	return head;
 }

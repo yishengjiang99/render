@@ -2,7 +2,9 @@
 #include "envelope.c"
 #endif
 #define voice_h 1
-
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MID(x, y, z) MAX((x), MIN((y), (z)))
 typedef struct _voice
 {
 	zone_t *z;
@@ -15,6 +17,7 @@ typedef struct _voice
 	int midi;
 	int velocity;
 	int chid;
+	float panLeft, panRight;
 
 } voice;
 void applyZone(voice *v, zone_t *z, int midi, int vel)
@@ -38,6 +41,21 @@ void applyZone(voice *v, zone_t *z, int midi, int vel)
 	v->z = z;
 	v->midi = midi;
 	v->velocity = vel;
+	if (z->Pan < -500)
+	{
+		v->panLeft = 1.0f;
+		v->panRight = 0.0f;
+	}
+	if (z->Pan > 500)
+	{
+		v->panLeft = 0.0f;
+		v->panRight = 1.0f;
+	}
+	else
+	{
+		v->panLeft = sqrtf(0.5 - z->Pan / 500.f);
+		v->panRight = sqrtf(0.5 + z->Pan / 10000.f);
+	}
 }
 voice *newVoice(zone_t *z, int midi, int vel)
 {

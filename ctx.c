@@ -18,12 +18,12 @@ ctx_t *init_ctx()
 	ctx->sampleRate = 48000;
 	ctx->currentFrame = 0;
 	ctx->samples_per_frame = 128;
-	for (int i = 0; i < 16; i++)
+	for (int i = 0; i < 32; i++)
 	{
-		ctx->channels[i].program_number = i * 7;
-		ctx->channels[i].midi_gain_cb = 90;
+		ctx->channels[i].program_number = 0;
+		ctx->channels[i].midi_gain_cb = 120;
 	}
-	ctx->voices = (voice *)malloc(sizeof(voice) * 16);
+	ctx->voices = (voice *)malloc(sizeof(voice) * 16 * 2);
 	ctx->refcnt = 0;
 	ctx->mastVol = 1.0f;
 	ctx->outputFD = NULL;
@@ -39,9 +39,11 @@ void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when
 	int programNumber = ctx->channels[channelNumber].program_number;
 	voice *v1 = ctx->voices + 2 * channelNumber + 0;
 	voice *v2 = ctx->voices + 2 * channelNumber + 1;
-	zone_t *z = get_sf(programNumber & 0x7f, programNumber & 0x80, midi, vel);
-	if (z)
+	zone_t *z = get_sf(programNumber, 0, midi, vel);
+	if (z != NULL)
 		applyZone(ctx->voices + 2 * channelNumber + 0, z, midi, vel);
+	if (z + 1 != NULL)
+		applyZone(ctx->voices + 2 * channelNumber + 1, z + 1, midi, vel);
 }
 
 void noteOff(ctx_t *ctx, int ch, int midi)
@@ -54,7 +56,7 @@ void noteOff(ctx_t *ctx, int ch, int midi)
 void render(ctx_t *ctx)
 {
 	bzero(ctx->outputbuffer, sizeof(float) * ctx->samples_per_frame * 2);
-	for (int i = 0; i < 16; i++)
+	for (int i = 0; i < 32; i++)
 	{
 		voice *v = ctx->voices + i;
 
@@ -76,15 +78,7 @@ void render(ctx_t *ctx)
 			maxv = absf;
 		}
 	}
-	if (maxv > 1.0f)
-	{
-		for (int i = 0; i < ctx->samples_per_frame; i++)
-		{
-			ctx->outputbuffer[i] = ctx->outputbuffer[i] / maxv;
-			if (ctx->outputbuffer[i] > 1.0f)
-				ctx->outputbuffer[i] = 1.0f;
-		}
-	}
+
 	if (ctx->outputFD)
 		fwrite(ctx->outputbuffer, ctx->samples_per_frame * 2, 4, ctx->outputFD);
 }

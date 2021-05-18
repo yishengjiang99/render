@@ -27,6 +27,7 @@ int main()
 	assert(oscillator[NUM_OSCILLATORS - 1].wave000 != NULL);
 	oscillator[0].phaseIncrement = (int32_t)(BIT32_NORMALIZATION * 220 / SAMPLE_RATE + 0.5f);
 	delay_t *dl = newDelay(4096 * 4, 4096);
+
 	complex *cs = (complex *)malloc(sizeof(complex) * 4096);
 	float *fftinput = malloc(4096 * sizeof(float));
 	for (int i = 0; i < 58000; i += 128)
@@ -35,8 +36,6 @@ int main()
 		dl_write(dl, 128, oscillator[0].output_ptr);
 		input_time_domain_floats(4096, dl->read, cs, &(stbl[0]));
 	}
-
-	// delay_snds(dl);
 
 	assert(oscillator[0].phase > 0);
 }

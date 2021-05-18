@@ -18,6 +18,8 @@ void *cb(void *args)
 	ctx_t *ctx = (ctx_t *)args;
 	struct timespec start, stop;
 	long elapsed;
+	ctx->outputFD = ffp(2, 48000);
+
 	for (;;)
 	{
 		clock_gettime(0, &start);
@@ -25,7 +27,7 @@ void *cb(void *args)
 		clock_gettime(0, &stop);
 		elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
 
-		usleep(1e3 - elapsed);
+		usleep(30000);
 	}
 
 	return NULL;
@@ -34,9 +36,6 @@ int main()
 {
 	ctx_t *ctx = init_ctx();
 	readsf(fopen("file.sf2", "rb"));
-
-	sleep(3);
-	ctx->outputFD = formatpcm("wave", "banananaaa.wav");
 
 	tml_message *m = tml_load_filename("song.mid");
 	int msec = 0;
@@ -74,6 +73,7 @@ int main()
 
 				break;
 			case TML_NOTE_ON:
+				//	printf("\n %lu %d", msec, m->key);
 
 				noteOn(ctx, (int)m->channel, (int)m->key, (int)m->velocity, m->time);
 				break;
@@ -85,8 +85,7 @@ int main()
 			}
 			m = m->next;
 		}
-		usleep(MSEC * 3);
+		usleep(3000);
 	}
 }
-// //pthread_join(audiothread, NULL);
-// }
+//}
