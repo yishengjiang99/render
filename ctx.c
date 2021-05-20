@@ -20,19 +20,19 @@ ctx_t *init_ctx()
 	ctx->samples_per_frame = 128;
 	for (int i = 0; i < 16; i++)
 	{
-		ctx->channels[i].program_number = i * 7;
-		ctx->channels[i].midi_gain_cb = 90;
+		ctx->channels[i].program_number = 0;
+		ctx->channels[i].midi_gain_cb = 0;
 	}
-	ctx->voices = (voice *)malloc(sizeof(voice) * 16);
+	ctx->voices = (voice *)malloc(sizeof(voice) * 32);
 	ctx->refcnt = 0;
 	ctx->mastVol = 1.0f;
 	ctx->outputFD = NULL;
 	ctx->outputbuffer = (float *)malloc(sizeof(float) * ctx->samples_per_frame * 2);
 	return ctx;
 }
-void loopctx(voice *v, ctx_t *ctx)
+void loopctx(voice *v, ctx_t *ctx, int flag)
 {
-	loop(v, ctx->outputbuffer);
+	loop(v, ctx->outputbuffer, flag);
 }
 void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when)
 {
@@ -40,8 +40,17 @@ void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when
 	voice *v1 = ctx->voices + 2 * channelNumber + 0;
 	voice *v2 = ctx->voices + 2 * channelNumber + 1;
 	zone_t *z = get_sf(programNumber & 0x7f, programNumber & 0x80, midi, vel);
+	//	z->Attenuation += ctx->channels[channelNumber].midi_gain_cb + velCB[vel];
 	if (z)
-		applyZone(ctx->voices + 2 * channelNumber + 0, z, midi, vel);
+	{
+		applyZone(v1, z, midi, vel);
+		v1->attenuate += ctx->channels[channelNumber].midi_gain_cb;
+	}
+	if (z + 1)
+	{
+		applyZone(v2, z, midi, vel);
+		v2->attenuate += ctx->channels[channelNumber].midi_gain_cb;
+	}
 }
 
 void noteOff(ctx_t *ctx, int ch, int midi)
@@ -54,12 +63,22 @@ void noteOff(ctx_t *ctx, int ch, int midi)
 void render(ctx_t *ctx)
 {
 	bzero(ctx->outputbuffer, sizeof(float) * ctx->samples_per_frame * 2);
-	for (int i = 0; i < 16; i++)
+	int vs = 0;
+	for (int i = 0; i < 32; i++)
 	{
 		voice *v = ctx->voices + i;
 
-		if ((ctx->voices + i)->z != NULL)
-			loopctx(ctx->voices + i, ctx);
+		if (v->z != NULL && v->ampvol != NULL && v->ampvol->decay_steps > 0)
+			vs++;
+	}
+	for (int i = 0; i < 32; i++)
+	{
+		voice *v = ctx->voices + i;
+
+		if (v && v->ampvol && v->ampvol->att_steps > 0)
+			loopctx(v, ctx, 1);
+		else if (v && v->ampvol && v->ampvol->decay_steps > 0)
+			loopctx(v, ctx, 0);
 	}
 
 	ctx->currentFrame++;
@@ -72,7 +91,7 @@ void render(ctx_t *ctx)
 
 		if (absf >= maxv)
 		{
-			fprintf(stderr, "clipping at %f\n", absf);
+			//fprintf(stderr, "clipping at %f\n", absf);
 			maxv = absf;
 		}
 	}

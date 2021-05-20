@@ -21,7 +21,7 @@ int main()
 	noteOff(c, 0, 55);
 	noteOn(c, 0, 77, 66, c->currentFrame + 1);
 	render_fordr(c, 0.25);
-	noteOff(c, 0, 55);
+	noteOff(c, 0, 77);
 	noteOn(c, 0, 44, 77, c->currentFrame + 1);
 	render_fordr(c, 4.5);
 	return 9;

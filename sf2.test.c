@@ -3,7 +3,6 @@
 #include "shift.c"
 #include "delay.c"
 #include "stbl.c"
-#include "libs/wvtb/fft.c"
 
 void cb(voice *data)
 {

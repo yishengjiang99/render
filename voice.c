@@ -15,6 +15,7 @@ typedef struct _voice
 	int midi;
 	int velocity;
 	int chid;
+	short attenuate;
 
 } voice;
 void applyZone(voice *v, zone_t *z, int midi, int vel)
@@ -38,6 +39,7 @@ void applyZone(voice *v, zone_t *z, int midi, int vel)
 	v->z = z;
 	v->midi = midi;
 	v->velocity = vel;
+	v->attenuate = z->Attenuation + velCB[vel];
 }
 voice *newVoice(zone_t *z, int midi, int vel)
 {

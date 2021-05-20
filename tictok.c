@@ -10,21 +10,20 @@ int main(int argc, char **argv)
 	struct timespec start, stop;
 	double accum;
 
-	if (clock_gettime(CLOCK_REALTIME, &start) == -1)
+	if (clock_gettime(CLOCK_MONOTONIC, &start) == -1)
 	{
 		perror("clock gettime");
 		exit(EXIT_FAILURE);
 	}
 
-	system("git pull");
-
-	if (clock_gettime(CLOCK_REALTIME, &stop) == -1)
+	usleep(1000000);
+	if (clock_gettime(CLOCK_MONOTONIC, &stop) == -1)
 	{
 		perror("clock gettime");
 		exit(EXIT_FAILURE);
 	}
 
-	accum = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec) / BILLION;
+	accum = stop.tv_nsec - start.tv_nsec;
 	printf("%lf\n", accum);
 	return (EXIT_SUCCESS);
 }

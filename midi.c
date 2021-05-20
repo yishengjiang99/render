@@ -18,25 +18,24 @@ void *cb(void *args)
 	ctx_t *ctx = (ctx_t *)args;
 	struct timespec start, stop;
 	long elapsed;
+	ctx->outputFD = fopen("/dev/stdout", "wb"); //popen("ffmpeg -f f32le -i pipe:0 -ac 2 -ar 48000 -af loudnorm=.8 -acodec copy pipe:1|ffplay -i pipe:0 -f f32le -ac 2 -ar 48000", "w"); //ffp(2, 48000);
+
 	for (;;)
 	{
 		clock_gettime(0, &start);
 		render(ctx);
 		clock_gettime(0, &stop);
-		elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
-
-		usleep(1e3 * .9); // - elapsed);
+		elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec) * BILLION;
+		//printf("elapsed %lu", elapsed);
+		usleep(2 * MSEC);
 	}
 
 	return NULL;
 }
-int main()
+int main(int argc, char **argv)
 {
 	ctx_t *ctx = init_ctx();
 	readsf(fopen("file.sf2", "rb"));
-
-	sleep(3);
-	ctx->outputFD = formatpcm("mp3", "banananaaa.mp3");
 
 	tml_message *m = tml_load_filename("song.mid");
 	int msec = 0;
