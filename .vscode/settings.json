@@ -36,5 +36,6 @@
 		"utility": "c",
 		"__string": "c",
 		"locale": "c"
-	}
+	},
+	"C_Cpp.errorSquiggles": "Enabled"
 }
