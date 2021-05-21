@@ -1,17 +1,13 @@
+#ifndef SF2_C
+#define SF2_C
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <mm_malloc.h>
 #include <string.h>
 #include "sf2.h"
-#ifndef voice_h
 #include "voice.c"
 
-#endif
-#ifndef listscan
-#include "listscan.c"
-
-#endif
 #define sr 24000
 int readsf(FILE *fd)
 {
@@ -108,11 +104,11 @@ zone_t *get_sf(int pid, int bkid, int key, int vel)
 				inst *ihead = insts + instID;
 				int ibgId = ihead->ibagNdx;
 				int lastibg = (ihead + 1)->ibagNdx;
-				short igdef[60] = {-1};
+				short igdef[60];
 				for (int ibg = ibgId; ibg < lastibg; ibg++)
 				{
 					lastSampId = -1;
-					short igset[60] = {-1};
+					short igset[60];
 					ibag *ibgg = ibags + ibg;
 					pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id : igens + nigens - 1;
 					for (pgen_t *g = igens + ibgg->igen_id; g->operator!= 60 && g != lastig; g++)
@@ -133,18 +129,18 @@ zone_t *get_sf(int pid, int bkid, int key, int vel)
 						attributes = (short *)malloc(sizeof(short) * 60);
 						for (int i = 0; i < 60; i++)
 						{
-							if (igset[i] != -1)
+							if (igset[i] != 0)
 								*(attributes + i) = igset[i];
-							else if (igdef[i] != -1)
+							else if (igdef[i] != 0)
 								*(attributes + i) = igdef[i];
 							else
 							{
 								*(attributes + i) = 0;
 							}
 
-							if (pgset[i] != -1)
+							if (pgset[i] != 0)
 								*(attributes + i) += pgset[i];
-							else if (pgdef[i] != -1)
+							else if (pgdef[i] != 0)
 								*(attributes + i) += pgdef[i];
 						}
 						z = (zone_t *)attributes;
@@ -156,3 +152,5 @@ zone_t *get_sf(int pid, int bkid, int key, int vel)
 	//return head;
 	return z;
 }
+
+#endif

@@ -1,6 +1,14 @@
 #include "sf2.c"
 #include <assert.h>
-int main()
+static char *testcase
+#define describe(str) \
+	{                   \
+		testcase = str;   \
+		printf(str);      \
+	}
+
+		int
+		main()
 {
 	readsf(fopen("file.sf2", "rb"));
 	IndexPresets();

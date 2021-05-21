@@ -1,7 +1,9 @@
-#ifndef adsr
+#ifndef VOICE_C
+#define VOICE_C
+
 #include "envelope.c"
-#endif
-#define voice_h 1
+#include "lpf.c"
+#include "lfo.c"
 
 typedef struct _voice
 {
@@ -16,7 +18,7 @@ typedef struct _voice
 	int velocity;
 	int chid;
 	short attenuate;
-
+	lpf *lpf;
 } voice;
 void applyZone(voice *v, zone_t *z, int midi, int vel)
 {
@@ -40,6 +42,8 @@ void applyZone(voice *v, zone_t *z, int midi, int vel)
 	v->midi = midi;
 	v->velocity = vel;
 	v->attenuate = z->Attenuation + velCB[vel];
+	v->lpf = (lpf *)malloc(sizeof(lpf));
+	newLpf(v->lpf, centtone2freq(z->FilterFc), 48000);
 }
 voice *newVoice(zone_t *z, int midi, int vel)
 {
@@ -47,3 +51,5 @@ voice *newVoice(zone_t *z, int midi, int vel)
 	applyZone(v, z, midi, vel);
 	return v;
 }
+
+#endif
