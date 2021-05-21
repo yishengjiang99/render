@@ -12,6 +12,8 @@ void loop(voice *v, float *output)
 	{
 		float f1 = *(sdta + v->pos);
 		float f2 = *(sdta + v->pos + 1);
+		float o1 = *(output + 2 * i + 1);
+		float o2 = *(output + 2 * i);
 		float gain = f1 + (f2 - f1) * v->frac;
 
 		float mono = gain * centdblut(envShift(v->ampvol)); // + attentuate); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];

@@ -1,4 +1,6 @@
-#define read2_h 1
+#ifndef SF2_H
+#define SF2_H
+
 typedef unsigned int uint32_t;
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
@@ -150,3 +152,5 @@ typedef struct pdatlist
 	igen *igens;
 	shdr *shdrs;
 } pdtalist;
+
+#endif

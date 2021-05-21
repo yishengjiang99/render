@@ -1,4 +1,6 @@
-
+#ifndef LPF_C
+#define LPF_C
+#include <string.h>
 typedef struct
 {
 	/*
@@ -39,3 +41,5 @@ float process_input(lpf *l, float input)
 	l->m1 = l->input * (1.0f - l->X) + l->m1 * l->X;
 	return l->m1;
 }
+
+#endif

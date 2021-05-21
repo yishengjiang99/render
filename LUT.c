@@ -36,3 +36,11 @@ static float midiCBlut(int midi)
 		return 0.0f;
 	return midiCB[midi];
 }
+static inline uint32_t timecent2steps(short tc, uint32_t samplerate)
+{
+	return p2over1200(tc) * samplerate;
+}
+static inline float centtone2freq(short ct)
+{
+	return p2over1200(ct - 6900) * 440.0f;
+}

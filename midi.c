@@ -32,7 +32,7 @@ void *cb(void *args)
 
 	return NULL;
 }
-int main()
+int main(int argc, char **argv)
 {
 	ctx_t *ctx = init_ctx();
 	readsf(fopen("file.sf2", "rb"));

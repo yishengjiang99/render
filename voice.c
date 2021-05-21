@@ -1,4 +1,6 @@
-#ifndef adsr
+#ifndef VOICE_C
+#define VOICE_C
+
 #include "envelope.c"
 #endif
 #define voice_h 1
@@ -63,3 +65,5 @@ voice *newVoice(zone_t *z, int midi, int vel)
 	applyZone(v, z, midi, vel);
 	return v;
 }
+
+#endif

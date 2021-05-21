@@ -30,9 +30,9 @@ ctx_t *init_ctx()
 	ctx->outputbuffer = (float *)malloc(sizeof(float) * ctx->samples_per_frame * 2);
 	return ctx;
 }
-void loopctx(voice *v, ctx_t *ctx)
+void loopctx(voice *v, ctx_t *ctx, int flag)
 {
-	loop(v, ctx->outputbuffer);
+	loop(v, ctx->outputbuffer, flag);
 }
 void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when)
 {
@@ -60,8 +60,10 @@ void render(ctx_t *ctx)
 	{
 		voice *v = ctx->voices + i;
 
-		if ((ctx->voices + i)->z != NULL)
-			loopctx(ctx->voices + i, ctx);
+		if (v && v->ampvol && v->ampvol->att_steps > 0)
+			loopctx(v, ctx, 1);
+		else if (v && v->ampvol && v->ampvol->decay_steps > 0)
+			loopctx(v, ctx, 0);
 	}
 
 	ctx->currentFrame++;
@@ -74,7 +76,7 @@ void render(ctx_t *ctx)
 
 		if (absf >= maxv)
 		{
-			fprintf(stderr, "clipping at %f\n", absf);
+			//fprintf(stderr, "clipping at %f\n", absf);
 			maxv = absf;
 		}
 	}
