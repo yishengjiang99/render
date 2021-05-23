@@ -4,24 +4,27 @@
 #include <math.h>
 #include "sf2.c"
 #include "call_ffp.c"
-
+#include "voice.c"
+#include "shift.c"
+#include "ctx.c"
+#include <stdio.h>
+#define passert(e)          \
+	printf("%f", (float)(e)); \
+	assert(e);
 int main()
 {
-	zone_t z;
-	z.ModLFOFreq = 80;
-	z.ModEnv2FilterFc = 100;
-	lfo_t *l = newModLFO(z);
-	assert(l->freq - powf(2.0f, (80.0 - 6900) / 1200.0f) * 440 < 10);
+	readsf(fopen("FluidR3_GM.sf2", "rb"));
+	ctx_t *ctx = init_ctx();
 
-	FILE *outp = wavepic("wv.png");
+	zone_t *z = get_sf(phdrs[0].pid, phdrs[0].bankId, 55, 55);
+	voice *v = (voice *)malloc(sizeof(voice));
+	applyZone(v, z, 55, 55);
+	//FILE *o = wavepic("pic.png");
+	float *buf = (float *)malloc(sizeof(float) * dspbuffersize * 2);
 
-	int t = 0;
-	while (t < 57000)
-	{
-		lfo_run(l);
-		printf("\n%f\n", &(l->output[5]));
-		fwrite(&(l->output[0]), 4, blocksize, outp);
-		t += blocksize;
-	}
-	system("open wv.png");
+	v->ratio = 1.0f;
+	loop(v, buf);
+
+	printf("%u %u", v->endloop - v->startloop, 1); //v->panLeft, 1;
+	return 1;
 }

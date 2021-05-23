@@ -1,3 +1,6 @@
+#ifndef LUT_C
+#define LUT_C
+
 #include <stdio.h>
 #include <math.h>
 #ifndef p2over1200LUT
@@ -19,7 +22,7 @@ static inline float p2over1200(float x)
 		return p2over1200LUT[(unsigned short)(x)];
 	}
 }
-static float centdblut(int x)
+static inline float centdblut(int x)
 {
 	if (x < 0)
 		x = 0;
@@ -28,7 +31,7 @@ static float centdblut(int x)
 
 	return centdbLUT[x];
 }
-static float midiCBlut(int midi)
+static inline float midiCBlut(int midi)
 {
 	if (midi < 0)
 		return -960.0f;
@@ -44,3 +47,25 @@ static inline float centtone2freq(short ct)
 {
 	return p2over1200(ct - 6900) * 440.0f;
 }
+static inline float ct2relativePitch(short ct)
+{
+	return p2over1200(ct);
+}
+
+static inline float panLeftLUT(short Pan)
+{
+	if (Pan < -500)
+	{
+		return 1;
+	}
+	if (Pan > 500)
+	{
+		return 0.0f;
+	}
+	else
+	{
+		return 0.5f + pan[Pan + 500];
+	}
+}
+
+#endif
