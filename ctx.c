@@ -44,12 +44,12 @@ void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when
 	if (z)
 	{
 		applyZone(v1, z, midi, vel);
-		v1->attenuate += ctx->channels[channelNumber].midi_gain_cb + velCB[vel];
+		v1->attenuate += ctx->channels[channelNumber].midi_volume + velCB[vel];
 	}
 	if (z + 1)
 	{
 		applyZone(v2, z, midi, vel);
-		v2->attenuate += ctx->channels[channelNumber].midi_gain_cb + velCB[vel];
+		v2->attenuate += ctx->channels[channelNumber].midi_volume + velCB[vel];
 	}
 }
 

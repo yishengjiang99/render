@@ -1,9 +1,6 @@
-#include <stdio.h>
-#include <math.h>
-#ifndef p2over1200LUT
+#ifndef LUT_C
+#define LUT_C
 #include "luts.c"
-
-#endif
 static inline float p2over1200(float x)
 {
 	if (x < -12000)
@@ -44,3 +41,5 @@ static inline float centtone2freq(short ct)
 {
 	return p2over1200(ct - 6900) * 440.0f;
 }
+
+#endif
