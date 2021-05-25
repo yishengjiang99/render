@@ -76,7 +76,7 @@ void wavetable_0dimensional_oscillator(wavetable_oscillator_data *this_oscillato
 		phase += phaseIncrement;
 		phaseIncrement += frequencyIncrement;
 
-		*out++ += _wave000;
+		*out++ = _wave000;
 	}
 
 	this_oscillator->phase = phase;

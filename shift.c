@@ -1,12 +1,10 @@
+#include "voice.c"
 
-
-void loop(voice *v, float *output, int flag)
+void loop(voice *v, float *output)
 {
 	uint32_t loopLength = v->endloop - v->startloop;
 	float attentuate = v->z->Attenuation;
-	short pan = v->z->Pan;
-	float panLeft = sqrtf(0.5f - pan / 1000.0f);
-	float panright = sqrtf(0.5f + pan / 1000.0f);
+
 	for (int i = 0; i < 128; i++)
 	{
 		float f1 = *(sdta + v->pos);
@@ -15,9 +13,10 @@ void loop(voice *v, float *output, int flag)
 		float o2 = *(output + 2 * i);
 		float gain = f1 + (f2 - f1) * v->frac;
 
-		float mono = gain * centdblut(envShift(v->ampvol) + (int)attentuate); //[(int)envShift(v->ampvol)]
-		*(output + 2 * i) = o1 * 0.8f + mono * panright / (float)flag;
-		*(output + 2 * i + 1) = o2 * 0.8f + mono * panLeft / (float)flag;
+		float mono = gain * centdblut(envShift(v->ampvol)); // + attentuate); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];
+		*(output + 2 * i) += mono * v->panRight;
+		*(output + 2 * i + 1) += mono * v->panLeft;
+
 		v->frac += v->ratio;
 		while (v->frac >= 1.0f)
 		{

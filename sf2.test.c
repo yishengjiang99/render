@@ -1,8 +1,8 @@
 #include "sf2.c"
-
 #include "shift.c"
 #include "delay.c"
 #include "stbl.c"
+#include "libs/fft.c"
 
 void cb(voice *data)
 {
@@ -16,15 +16,15 @@ int main(int argc, char const *argv[])
 	readsf(fopen("file.sf2", "rb"));
 
 	delay_data *delay = newDelay(4096);
-	complex *cs = (complex *)malloc(sizeof(complex) * 1024);
+	complex *cs = (complex *)malloc(sizeof(complex) * 4096);
 	for (int i = 30; i < 80; i++)
 	{
-		int iter = 4800;
+		int iter = 480;
 		zone_t *z = get_sf(0, phdrs[0].bankId, i, 66);
+		loop(z, delay->inputwave);
 		delay_snds(delay);
-		loop(newVoice(z, i, 66), inputPtr(delay));
-		input_time_domain_floats(delay->input_size, delay->output, cs, &(stbl[0]));
-
+		input_time_domain_floats(delay->input_size, delay->output, cs, stbl);
+		//			FFT(cs, 12L, stbl);
 		for (int i = 0; i < 2048; i++)
 		{
 			printf("\n %f %f ", (*cs).real, (*cs).imag);

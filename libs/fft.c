@@ -235,15 +235,3 @@ void bit_reverse(register complex *x, int n)
 		}
 	}
 }
-
-void input_time_domain_floats(int n, float *reals, complex *x, double *stbl)
-{
-	complex *ptr = x;
-	while (n-- > 0)
-	{
-		ptr->real = *reals;
-		ptr->imag = 0.0f;
-		ptr++;
-	}
-	FFT(x, 10L, stbl);
-}

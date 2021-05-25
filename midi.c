@@ -25,9 +25,9 @@ void *cb(void *args)
 		clock_gettime(0, &start);
 		render(ctx);
 		clock_gettime(0, &stop);
-		elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec) * BILLION;
-		//printf("elapsed %lu", elapsed);
-		usleep(2 * MSEC);
+		elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
+
+		usleep(30000);
 	}
 
 	return NULL;
@@ -76,6 +76,7 @@ int main(int argc, char **argv)
 
 				break;
 			case TML_NOTE_ON:
+<<<<<<< HEAD
 				if (m->velocity == 0)
 				{
 					noteOff(ctx, (int)m->channel, (int)m->key);
@@ -84,6 +85,9 @@ int main(int argc, char **argv)
 				{
 					noteOn(ctx, (int)m->channel, (int)m->key, (int)m->velocity, m->time);
 				}
+=======
+				//	printf("\n %lu %d", msec, m->key);
+>>>>>>> master
 
 				break;
 			case TML_NOTE_OFF:
@@ -94,8 +98,7 @@ int main(int argc, char **argv)
 			}
 			m = m->next;
 		}
-		//	usleep(MSEC * 3);
+		usleep(3000);
 	}
 }
-// //pthread_join(audiothread, NULL);
-//
+//}

@@ -35,6 +35,13 @@
 		"tuple": "c",
 		"utility": "c",
 		"__string": "c",
-		"locale": "c"
-	}
+		"locale": "c",
+		"gtest.h": "c",
+		"deque": "c",
+		"filesystem": "c",
+		"mm_malloc.h": "c",
+		"ctx.c": "cpp",
+		"sf2.c": "cpp"
+	},
+	"C_Cpp.errorSquiggles": "Enabled"
 }

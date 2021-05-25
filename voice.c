@@ -1,10 +1,11 @@
 #ifndef VOICE_C
 #define VOICE_C
-
+#include "LUT.c"
 #include "envelope.c"
-#include "lpf.c"
-#include "lfo.c"
-
+#define voice_h 1
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MID(x, y, z) MAX((x), MIN((y), (z)))
 typedef struct _voice
 {
 	zone_t *z;
@@ -17,8 +18,9 @@ typedef struct _voice
 	int midi;
 	int velocity;
 	int chid;
+	float panLeft, panRight;
 	short attenuate;
-	lpf *lpf;
+
 } voice;
 void applyZone(voice *v, zone_t *z, int midi, int vel)
 {
@@ -34,16 +36,17 @@ void applyZone(voice *v, zone_t *z, int midi, int vel)
 	short rt = z->OverrideRootKey > -1 ? z->OverrideRootKey : sh->originalPitch;
 	float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
 	float octaveDivv = ((float)midi * 100 - sampleTone) / 1200.0f;
-	v->ratio = 1.0f * pow(2.0f, octaveDivv) * sh->sampleRate / 48000;
+	v->ratio =
+
+			p2over1200(octaveDivv) * sh->sampleRate / 48000;
 
 	v->pos = v->start;
 	v->frac = 0.0f;
 	v->z = z;
 	v->midi = midi;
 	v->velocity = vel;
-	v->attenuate = z->Attenuation + velCB[vel];
-	v->lpf = (lpf *)malloc(sizeof(lpf));
-	newLpf(v->lpf, centtone2freq(z->FilterFc), 48000);
+	v->panLeft = panLeftLUT(z->Pan);
+	v->panRight = 1 - v->panLeft;
 }
 voice *newVoice(zone_t *z, int midi, int vel)
 {
@@ -51,5 +54,4 @@ voice *newVoice(zone_t *z, int midi, int vel)
 	applyZone(v, z, midi, vel);
 	return v;
 }
-
 #endif

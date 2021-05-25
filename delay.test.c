@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "wavetable_oscillator.c"
+#include "libs/wavetable-oscillator.c"
 #include <assert.h>
 int main()
 {

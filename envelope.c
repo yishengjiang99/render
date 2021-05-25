@@ -1,11 +1,9 @@
-#ifndef read2_h
+#ifndef ENVELOPE_C
+#define ENVELOPE_C
+
 #include "sf2.h"
-#endif
-#ifndef LUT
 #include "LUT.c"
-#endif
-#include <math.h>
-#include <stdlib.h>
+#include "stdlib.h"
 
 #define adsr 1
 #define fmax(a, b) a > b ? a : b
@@ -20,7 +18,7 @@ typedef struct
 adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay, short sustain, int sampleRate)
 {
 	adsr_t *env = (adsr_t *)malloc(sizeof(adsr_t));
-	env->att_steps = fmax(p2over1200(centAtt) * sampleRate, 58);
+	env->att_steps = fmax(p2over1200(centAtt) * sampleRate, 12);
 	env->decay_steps = fmax(p2over1200(centDecay) * sampleRate, 2);
 	env->release_steps = fmax(p2over1200(centRelease) * sampleRate, 2);
 	env->att_rate = -960.0f / env->att_steps;
@@ -61,3 +59,5 @@ void adsrRelease(adsr_t *env)
 	env->decay_steps = 0;
 	env->att_steps = 0;
 }
+
+#endif

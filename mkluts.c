@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <math.h>
+#define DBFULLSCAlE 960.0f
+#define PI
+static float panLUT[1000];
 static float p2over1200LUT[1200];
 static inline float p2over1200(float x)
 {
@@ -36,29 +39,44 @@ void initLUTs()
 		fprintf(f, "%ff,", powf(2.0f, i / 1200.0f));
 	}
 	fprintf(f, "2.0f};\n");
-	fprintf(f, "float centdbLUT[1440] = {");
-	for (int i = 0; i < 1439; i++)
+	fprintf(f, "double centdbLUT[1441] = {");
+	for (int i = 0; i < 1440; i++)
 	{
-		centdbLUT[i] = powf(10.0f, i / -200.0);
-		fprintf(f, "%ff,", powf(10.0f, i / -200.0));
+		centdbLUT[i] = powl(10.0l, (double)i / -200.0);
+		fprintf(f, "\n%LFf,", powl(10.0l, (double)i / -200.0));
 	}
 	fprintf(f, "0.0f};");
 
-	fprintf(f, "float midiCB[129] = { 960.f, ");
+	fprintf(f, "\n float midiCB[129] = { 960.f, ");
 
 	for (int n = 1; n < 128; n++)
 	{
-		fprintf(f, "%ff,", -200.0 * logf(n / 127.0f));
+		fprintf(f, "%ff,", (-200.0) * logf(n / 127.0f) / M_LN10);
 	}
 	fprintf(f, "0.0f};");
 
-	fprintf(f, "float velCB[129] = { 960.f, ");
+	fprintf(f, "\n\nfloat velCB[129] = { 960.f, ");
 
 	for (int n = 1; n < 128; n++)
 	{
-		fprintf(f, "%ff,", -200.0 * logf(n * n / 127.0f / 127.0f));
+		fprintf(f, "\n%ff,", -200.0 * logf(n * n / 127.0f / 127.0f) / M_LN10);
 	}
 	fprintf(f, "0.0f};");
+
+	fprintf(f, "\nfloat pan[1001] = {");
+
+	for (int n = 1; n < 1001; n++)
+	{
+		fprintf(f, "%ff,", sinf((float)(n - 500.0f) / 1000.0f * M_2_PI));
+	}
+	fprintf(f, "0.0f};");
+
+	fprintf(f, "float cent2hz[1201]={");
+	for (int i = 0; i < 1200; i++)
+	{
+		fprintf(f, "%ff,", 8.176f * powf(2.f, i / 1200.f));
+	}
+	fprintf(f, "%ff};", 8.176f * 2);
 }
 
 int main()

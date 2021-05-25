@@ -1,14 +1,8 @@
-#ifndef read2_h
-#include "sf2.c"
-#endif
-#include "string.h"
-#ifndef adsr
 #include "envelope.c"
-#endif
-#ifndef voice_h
 #include "voice.c"
+#include "sf2.c"
+#include "string.h"
 
-#endif
 #include "ctx.h"
 #include "shift.c"
 
@@ -18,12 +12,12 @@ ctx_t *init_ctx()
 	ctx->sampleRate = 48000;
 	ctx->currentFrame = 0;
 	ctx->samples_per_frame = 128;
-	for (int i = 0; i < 16; i++)
+	for (int i = 0; i < 32; i++)
 	{
 		ctx->channels[i].program_number = 0;
 		ctx->channels[i].midi_volume = 1.0f;
 	}
-	ctx->voices = (voice *)malloc(sizeof(voice) * 32);
+	ctx->voices = (voice *)malloc(sizeof(voice) * 16 * 2);
 	ctx->refcnt = 0;
 	ctx->mastVol = 1.0f;
 	ctx->outputFD = NULL;
@@ -32,7 +26,7 @@ ctx_t *init_ctx()
 }
 void loopctx(voice *v, ctx_t *ctx, int flag)
 {
-	loop(v, ctx->outputbuffer, flag);
+	loop(v, ctx->outputbuffer);
 }
 void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when)
 {
@@ -87,15 +81,7 @@ void render(ctx_t *ctx)
 			maxv = absf;
 		}
 	}
-	if (maxv > 1.0f)
-	{
-		for (int i = 0; i < ctx->samples_per_frame; i++)
-		{
-			ctx->outputbuffer[i] = ctx->outputbuffer[i] / maxv;
-			if (ctx->outputbuffer[i] > 1.0f)
-				ctx->outputbuffer[i] = 1.0f;
-		}
-	}
+
 	if (ctx->outputFD)
 		fwrite(ctx->outputbuffer, ctx->samples_per_frame * 2, 4, ctx->outputFD);
 }

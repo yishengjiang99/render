@@ -1,0 +1,21 @@
+{
+  "name": "render",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ctx.js",
+  "scripts": {
+    "build": "cmake -S . -B build && cmake --build build",
+    "test": "cd build && ctest && cd -"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yishengjiang99/render.git"
+  },
+  "keywords": [],
+  "author": "Yisheng Jiang",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yishengjiang99/render/issues"
+  },
+  "homepage": "https://github.com/yishengjiang99/render#readme"
+}
