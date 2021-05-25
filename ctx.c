@@ -21,7 +21,7 @@ ctx_t *init_ctx()
 	for (int i = 0; i < 16; i++)
 	{
 		ctx->channels[i].program_number = 0;
-		ctx->channels[i].midi_gain_cb = 0;
+		ctx->channels[i].midi_volume = 1.0f;
 	}
 	ctx->voices = (voice *)malloc(sizeof(voice) * 32);
 	ctx->refcnt = 0;
@@ -40,16 +40,16 @@ void noteOn(ctx_t *ctx, int channelNumber, int midi, int vel, unsigned long when
 	voice *v1 = ctx->voices + 2 * channelNumber + 0;
 	voice *v2 = ctx->voices + 2 * channelNumber + 1;
 	zone_t *z = get_sf(programNumber & 0x7f, programNumber & 0x80, midi, vel);
-	//	z->Attenuation += ctx->channels[channelNumber].midi_gain_cb + velCB[vel];
+
 	if (z)
 	{
 		applyZone(v1, z, midi, vel);
-		v1->attenuate += ctx->channels[channelNumber].midi_gain_cb;
+		v1->attenuate += ctx->channels[channelNumber].midi_gain_cb + velCB[vel];
 	}
 	if (z + 1)
 	{
 		applyZone(v2, z, midi, vel);
-		v2->attenuate += ctx->channels[channelNumber].midi_gain_cb;
+		v2->attenuate += ctx->channels[channelNumber].midi_gain_cb + velCB[vel];
 	}
 }
 
@@ -67,18 +67,10 @@ void render(ctx_t *ctx)
 	for (int i = 0; i < 32; i++)
 	{
 		voice *v = ctx->voices + i;
-
-		if (v->z != NULL && v->ampvol != NULL && v->ampvol->decay_steps > 0)
-			vs++;
-	}
-	for (int i = 0; i < 32; i++)
-	{
-		voice *v = ctx->voices + i;
-
-		if (v && v->ampvol && v->ampvol->att_steps > 0)
+		if (v->z && v->ampvol->release_steps > 0)
+		{
 			loopctx(v, ctx, 1);
-		else if (v && v->ampvol && v->ampvol->decay_steps > 0)
-			loopctx(v, ctx, 0);
+		}
 	}
 
 	ctx->currentFrame++;

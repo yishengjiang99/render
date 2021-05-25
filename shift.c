@@ -15,24 +15,9 @@ void loop(voice *v, float *output, int flag)
 		float o2 = *(output + 2 * i);
 		float gain = f1 + (f2 - f1) * v->frac;
 
-		float mono = gain * centdblut(envShift(v->ampvol) + (int)attentuate); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];
-		if (flag == 1)
-		{
-			*(output + 2 * i) = o1 * 0.8f + mono * panright;
-			*(output + 2 * i + 1) = o2 * 0.8f + mono * panLeft;
-		}
-		else if (flag > 5)
-		{
-
-			*(output + 2 * i) = o1 * 0.8f + mono * panright / (float)flag;
-			*(output + 2 * i + 1) = o2 * 0.8f + mono * panLeft / (float)flag;
-		}
-		else
-		{
-			*(output + 2 * i) += mono * panright * 0.8;
-			*(output + 2 * i + 1) += mono * panLeft * 0.8;
-		}
-
+		float mono = gain * centdblut(envShift(v->ampvol) + (int)attentuate); //[(int)envShift(v->ampvol)]
+		*(output + 2 * i) = o1 * 0.8f + mono * panright / (float)flag;
+		*(output + 2 * i + 1) = o2 * 0.8f + mono * panLeft / (float)flag;
 		v->frac += v->ratio;
 		while (v->frac >= 1.0f)
 		{

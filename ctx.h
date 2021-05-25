@@ -1,8 +1,8 @@
 typedef struct
 {
 	int program_number;
-	float midi_gain_cb;
-	float midi_pan;
+	unsigned short midi_volume;
+	unsigned short midi_pan;
 } channel_t;
 
 typedef struct _ctx

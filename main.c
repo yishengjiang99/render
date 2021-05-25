@@ -37,7 +37,7 @@ void route()
         uint8_t delayPtr = 0x00;
         while (fputc(fgetc(fd), stdout))
         {
-                }
+        }
         fclose(stdout);
         fclose(fd);
     }

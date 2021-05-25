@@ -79,7 +79,7 @@ zone_t *get_sf(int pid, int bkid, int key, int vel)
 			pgen_t *lastg = pgens + pg[j + 1].pgen_id;
 			int pgenId = pg->pgen_id;
 			int lastPgenId = j < npbags - 1 ? pbags[j + 1].pgen_id : npgens - 1;
-			short pgset[60] = {-1};
+			short pgset[60] = {0};
 			instID = -1;
 			for (int k = pgenId; k < lastPgenId; k++)
 			{

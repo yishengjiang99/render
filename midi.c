@@ -18,7 +18,7 @@ void *cb(void *args)
 	ctx_t *ctx = (ctx_t *)args;
 	struct timespec start, stop;
 	long elapsed;
-	ctx->outputFD = fopen("/dev/stdout", "wb"); //popen("ffmpeg -f f32le -i pipe:0 -ac 2 -ar 48000 -af loudnorm=.8 -acodec copy pipe:1|ffplay -i pipe:0 -f f32le -ac 2 -ar 48000", "w"); //ffp(2, 48000);
+	ctx->outputFD = ffp(2, 48000);
 
 	for (;;)
 	{
@@ -39,7 +39,6 @@ int main(int argc, char **argv)
 
 	tml_message *m = tml_load_filename("song.mid");
 	int msec = 0;
-	//	fmkfifo('ffr');
 
 	pthread_t t;
 	pthread_create(&t, NULL, &cb, (void *)ctx);
@@ -54,38 +53,42 @@ int main(int argc, char **argv)
 			{
 				switch (m->control)
 				{
+
 				case TML_VOLUME_MSB:
-					ctx->channels[m->channel].midi_gain_cb = midiCBlut(m->control_value);
+					channel_t *ch = &(ctx->channels[m->channel]);
+					ch->midi_volume = m->control_value;
 					break;
-				case TML_EXPRESSION_MSB:
-					ctx->channels[m->channel].midi_gain_cb = midiCBlut(m->control_value); //m->control_value;
+
+				case TML_ALL_NOTES_OFF:
+				case TML_ALL_SOUND_OFF:
+
+					break;
+				case TML_PROGRAM_CHANGE:
+
+					ctx->channels[m->channel].program_number = m->program;
+
+					break;
+				case TML_NOTE_ON:
+					if (m->velocity == 0)
+					{
+						noteOff(ctx, (int)m->channel, (int)m->key);
+					}
+					else
+					{
+						noteOn(ctx, (int)m->channel, (int)m->key, (int)m->velocity, m->time);
+					}
+
+					break;
+				case TML_NOTE_OFF:
+					noteOff(ctx, (int)m->channel, (int)m->key);
+					break;
+				default:
 					break;
 				}
-				break;
+				m = m->next;
 			}
-			case TML_ALL_NOTES_OFF:
-			case TML_ALL_SOUND_OFF:
-
-				break;
-			case TML_PROGRAM_CHANGE:
-
-				ctx->channels[m->channel].program_number = m->program;
-
-				break;
-			case TML_NOTE_ON:
-
-				noteOn(ctx, (int)m->channel, (int)m->key, (int)m->velocity, m->time);
-				break;
-			case TML_NOTE_OFF:
-				noteOff(ctx, (int)m->channel, (int)m->key);
-				break;
-			default:
-				break;
+				usleep(MSEC * 3);
 			}
-			m = m->next;
 		}
-		usleep(MSEC * 3);
-	}
-}
-// //pthread_join(audiothread, NULL);
-// }
+	// //pthread_join(audiothread, NULL);
+	// }

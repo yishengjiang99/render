@@ -18,20 +18,6 @@ typedef struct
 	float output[blocksize];
 } lfo_t;
 
-lfo_t *newLFO(float freq)
-{
-	lfo_t *lfo = (lfo_t *)malloc(sizeof(lfo_t));
-	lfo->phaseInc = PHASE_INC(freq, 48000);
-	return lfo;
-}
-lfo_t *newModLFO(zone_t z)
-{
-	lfo_t *lfo = newLFO(centtone2freq(z.ModLFOFreq));
-	lfo->delay = timecent2steps(z.ModLFODelay, 48000);
-	lfo->modfreq = z.ModEnv2FilterFc;
-	return lfo;
-}
-
 //based on https://github.com/yishengjiang99/nco from rbj@audionation.com
 #define MASK_FRACTIONAL_BITS 0x000FFFFFL
 #define MASK_WAVEINDEX 0x00000FFFUL
@@ -64,8 +50,21 @@ void lfo_run(lfo_t *lfo)
 		}
 		else
 		{
-			lfo->output[blocksize - todo] = int_sin(&lfo->phase, lfo->freq, 48000);
+			lfo->output[blocksize - todo] = int_sin(&lfo->phase, lfo->phaseInc); //, 48000);
 		}
 	}
 }
 #endif
+lfo_t *newLFO(float freq)
+{
+	lfo_t *lfo = (lfo_t *)malloc(sizeof(lfo_t));
+	lfo->phaseInc = PHASE_INC(freq, 48000);
+	return lfo;
+}
+lfo_t *newModLFO(zone_t z)
+{
+	lfo_t *lfo = newLFO(centtone2freq(z.ModLFOFreq));
+	lfo->delay = timecent2steps(z.ModLFODelay, 48000);
+	lfo->modfreq = z.ModEnv2FilterFc;
+	return lfo;
+}
