@@ -4,6 +4,17 @@
 #include "ctx.h"
 #include "sf2.h"
 #include "LUT.c"
+typedef short timecent;
+typedef short centone;
+typedef short centidb;
+#define blocksize 128
+typedef struct
+{
+	uint32_t delay, phase;
+	int32_t phaseInc;
+	short modfreq, modvol, modpitch;
+	float output[blocksize];
+} lfo_t;
 
 void initLFO(lfo_t *lfo, short delayct, short freqct)
 {
@@ -25,31 +36,12 @@ void runlfo(lfo_t *lfo)
 		}
 		if (lfo->val < -1.0f)
 		{
-<<<<<<< HEAD
-			lfo->output[blocksize - todo] = int_sin(&lfo->phase, lfo->phaseInc); //, 48000);
-=======
 			lfo->val = -2.0f + lfo->val;
 			lfo->stepIncVal *= -1;
->>>>>>> master
 		}
 		printf("%f", lfo->val);
 	}
 }
-<<<<<<< HEAD
-#endif lfo_t *newLFO(float freq)
-{
-	lfo_t *lfo = (lfo_t *)malloc(sizeof(lfo_t));
-	lfo->phaseInc = PHASE_INC(freq, 48000);
-	return lfo;
-}
-lfo_t *newModLFO(zone_t z)
-{
-	lfo_t *lfo = newLFO(centtone2freq(z.ModLFOFreq));
-	lfo->delay = timecent2steps(z.ModLFODelay, 48000);
-	lfo->modfreq = z.ModEnv2FilterFc;
-	return lfo;
-}
-=======
 float lfo_mod_vol(float val, short modvol)
 {
 	return centdblut(val * modvol);
@@ -64,4 +56,3 @@ float lfo_mod_filter(float val, short modFC)
 	return ct2relativePitch(val * modFC);
 }
 #endif
->>>>>>> master

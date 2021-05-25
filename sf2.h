@@ -4,6 +4,7 @@
 typedef unsigned int uint32_t;
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
+typedef int int32_t;
 typedef short int16_t;
 
 typedef uint32_t DWORD; // uint32_t;
