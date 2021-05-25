@@ -41,7 +41,9 @@
 		"filesystem": "c",
 		"mm_malloc.h": "c",
 		"ctx.c": "cpp",
-		"sf2.c": "cpp"
+		"sf2.c": "cpp",
+		"__nullptr": "cpp",
+		"presetexp.c": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "Enabled"
 }

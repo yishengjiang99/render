@@ -12,6 +12,7 @@ typedef struct
 {
 	uint32_t delay, phase;
 	int32_t phaseInc;
+	float val, stepIncVal;
 	short modfreq, modvol, modpitch;
 	float output[blocksize];
 } lfo_t;

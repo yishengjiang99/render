@@ -72,8 +72,9 @@ typedef struct
 } ibag;
 typedef struct
 {
-	genAmountType val;
 	unsigned short genid;
+	genAmountType val;
+
 } pgen_t;
 typedef pgen_t pgen;
 typedef struct

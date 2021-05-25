@@ -76,7 +76,6 @@ int main(int argc, char **argv)
 
 				break;
 			case TML_NOTE_ON:
-<<<<<<< HEAD
 				if (m->velocity == 0)
 				{
 					noteOff(ctx, (int)m->channel, (int)m->key);
@@ -85,9 +84,6 @@ int main(int argc, char **argv)
 				{
 					noteOn(ctx, (int)m->channel, (int)m->key, (int)m->velocity, m->time);
 				}
-=======
-				//	printf("\n %lu %d", msec, m->key);
->>>>>>> master
 
 				break;
 			case TML_NOTE_OFF:

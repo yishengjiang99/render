@@ -8,8 +8,6 @@
 #include "sf2.h"
 #include "voice.c"
 
-#endif
-
 int readsf(FILE *fd)
 {
 	sheader_t *header = (sheader_t *)malloc(sizeof(sheader_t));
@@ -153,3 +151,4 @@ zone_t *get_sf(int pid, int bkid, int key, int vel)
 	//return head;
 	return head;
 }
+#endif

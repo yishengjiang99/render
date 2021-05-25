@@ -3,7 +3,22 @@
 #include "ctx.h"
 #include "LUT.c"
 #include "envelope.c"
-#define voice_h 1
+typedef struct _voice
+{
+	zone_t *z;
+	shdrcast *sample;
+	unsigned int start, end, startloop, endloop;
+	uint32_t pos;
+	float frac;
+	float ratio;
+	adsr_t *ampvol;
+	int midi;
+	int velocity;
+	int chid;
+	float panLeft, panRight;
+	short attenuate;
+
+} voice;
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MID(x, y, z) MAX((x), MIN((y), (z)))
