@@ -7,5 +7,5 @@ int main()
 	preset *p = IndexPresets();
 	preset *h = p;
 
-	// dfprintff(0, 0, 55, 33); ///p, 0);
+	dfprintff(0, 0, 55, 33); ///p, 0);
 }

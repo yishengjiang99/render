@@ -31,7 +31,8 @@ float envShift(adsr_t *env)
 {
 	if (env->att_steps > 0)
 	{
-		env->att_steps--;
+		x
+				env->att_steps--;
 		env->db_attenuate += env->att_rate;
 	}
 	else if (env->decay_steps > 0)

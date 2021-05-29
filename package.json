@@ -4,7 +4,7 @@
   "description": "",
   "main": "ctx.js",
   "scripts": {
-    "build": "cmake -S . -B build && cmake --build build",
+    "build": "sh build.sh && ./runtime",
     "test": "cd build && ctest && cd -"
   },
   "repository": {

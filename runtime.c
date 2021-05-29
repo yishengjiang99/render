@@ -1,10 +1,60 @@
-#include "sf2.h"
+#include <stdlib.h>
+#include <assert.h>
+#include "sf2.c"
+#include "call_ffp.c"
+#include "minisdl_audio.h"
+#include "luts.c"
+typedef struct
+{
+	uint32_t att_steps, decay_steps, release_steps, delay_steps, hold_steps;
+	unsigned short sustain;
+	float db_attenuate;
+	float att_rate, decay_rate, release_rate;
+} adsr_t;
+typedef struct _voice
+{
+	zone_t *z;
+	shdrcast *sample;
+	unsigned int start, end, startloop, endloop;
+	uint32_t pos;
+	float frac;
+	float ratio;
+	adsr_t *ampvol;
+	int midi;
+	int velocity;
+	int chid;
+	float panLeft, panRight;
+	short attenuate;
+	struct _voice *next;
+} voice;
 
+typedef struct
+{
+	int program_number;
+	unsigned short midi_volume;
+	unsigned short midi_pan;
+} channel_t;
 
+typedef struct _ctx
+{
+	int sampleRate;
+	uint16_t currentFrame;
+	int samples_per_frame;
+	int refcnt;
+	float mastVol;
+	channel_t channels[16];
+	voice *voices;
+	float *outputbuffer;
+	FILE *outputFD;
+} ctx_t;
+
+void applyZone(zone_t *z, int midi, int vel);
+#define output_sampleRate 48000
+#define dspbuffersize 32
+
+static ctx_t *g_ctx;
 #ifndef lut
 #define lut
-
-#include "luts.c"
 static inline float p2over1200(float x)
 {
 	if (x < -12000)
@@ -66,27 +116,90 @@ static inline float panLeftLUT(short Pan)
 	}
 }
 #endif
-
-
-#ifndef adsrr
-# define adsrr
-
-#define adsr 1
-#define fmax(a, b) a > b ? a : b
-typedef struct
+void p2(int instID, int key, int vel, short attrs[])
 {
-	uint32_t att_steps, decay_steps, release_steps, delay_steps, hold_steps;
-	unsigned short sustain;
-	float db_attenuate;
-	float att_rate, decay_rate, release_rate;
-} adsr_t;
+	int lastSampId = -1;
+	inst *ihead = insts + instID;
+	int ibgId = ihead->ibagNdx;
+	int lastibg = (ihead + 1)->ibagNdx;
+	for (int ibg = ibgId; ibg < lastibg; ibg++)
+	{
+		lastSampId = -1;
+		ibag *ibgg = ibags + ibg;
+		pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id : igens + nigens - 1;
+		for (pgen_t *g = igens + ibgg->igen_id; g->genid != 60 && g != lastig; g++)
+		{
+
+			if (vel > -1 && g->genid == 44 && (g->val.ranges.lo > vel || g->val.ranges.hi < vel))
+				break;
+			if (key > -1 && g->genid == 43 && (g->val.ranges.lo > key || g->val.ranges.hi < key))
+				break;
+
+			if (g->genid == 53)
+			{
+				lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
+			}
+			attrs[60 + g->genid] = g->val.shAmount;
+		}
+		if (lastSampId > -1)
+		{
+		
+
+			for (int i = 0; i < 60; i++)
+			{
+				attrs[i] = attrs[60 + i] + attrs[i];
+			}
+			applyZone((zone_t *)attrs, key, vel);
+		}
+	}
+}
+
+void get_sf(int channelNumer, int key, int vel)
+{
+	int bkid = channelNumer == 9 ? 128 : 0;
+	int pid = g_ctx->channels[channelNumer].program_number;
+
+	short attrs[120];
+	int instID = -1, lastSampId = -1;
+	for (int i = 0; i < nphdrs - 1; i++)
+	{
+		if (phdrs[i].bankId != bkid || phdrs[i].pid != pid)
+			continue;
+		int lastbag = phdrs[i + 1].pbagNdx;
+		for (int j = phdrs[i].pbagNdx; j < lastbag; j++)
+		{
+
+			bzero(&attrs[0], 60 * sizeof(short));
+
+			pbag *pg = pbags + j;
+			pgen_t *lastg = pgens + pg[j + 1].pgen_id;
+			int pgenId = pg->pgen_id;
+			int lastPgenId = j < npbags - 1 ? pbags[j + 1].pgen_id : npgens - 1;
+			for (int k = pgenId; k < lastPgenId; k++)
+			{
+				pgen *g = pgens + k;
+				if (vel > -1 && g->genid == VelRange && (g->val.ranges.lo > vel || g->val.ranges.hi < vel))
+					break;
+				else if (key > -1 && g->genid == KeyRange && (g->val.ranges.lo > key || g->val.ranges.hi < key))
+					break;
+				 if (g->genid==Instrument)
+				{
+					instID = g->val.shAmount;
+					attrs[g->genid] = g->val.shAmount;
+					p2(instID, key, vel, attrs);
+				}
+			}
+
+		}
+	}
+}
 
 adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay, short sustain, int sampleRate)
 {
 	adsr_t *env = (adsr_t *)malloc(sizeof(adsr_t));
-	env->att_steps = fmax(p2over1200(centAtt) * sampleRate, 12);
-	env->decay_steps = fmax(p2over1200(centDecay) * sampleRate, 2);
-	env->release_steps = fmax(p2over1200(centRelease) * sampleRate, 2);
+	env->att_steps = p2over1200(centAtt) * sampleRate;
+	env->decay_steps = p2over1200(centDecay) * sampleRate;
+	env->release_steps = p2over1200(centRelease) * sampleRate;
 	env->att_rate = -960.0f / env->att_steps;
 	env->decay_rate = ((float)1.0f * sustain) / (env->decay_steps);
 	env->release_rate = (float)(1000 - sustain) / (env->release_steps);
@@ -126,32 +239,8 @@ void adsrRelease(adsr_t *env)
 	env->att_steps = 0;
 }
 
-
-#endif
-
-#ifndef VOICE_C
-#define VOICE_C
-#include "ctx.h"
-
-typedef struct _voice
-{
-	zone_t *z;
-	shdrcast *sample;
-	unsigned int start, end, startloop, endloop;
-	uint32_t pos;
-	float frac;
-	float ratio;
-	adsr_t *ampvol;
-	int midi;
-	int velocity;
-	int chid;
-	float panLeft, panRight;
-	short attenuate;
-
-} voice;
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#define MID(x, y, z) MAX((x), MIN((y), (z)))
+#define output_sampleRate 48000
+#define dspbuffersize 32
 
 void loop(voice *v, float *output)
 {
@@ -183,8 +272,25 @@ void loop(voice *v, float *output)
 	}
 }
 
-void applyZone(voice *v, zone_t *z, int midi, int vel)
+void applyZone(zone_t *z, int midi, int vel)
 {
+	voice *v=NULL;
+	voice **tr = &g_ctx->voices;
+	while (*tr)
+	{
+		if ((*tr)->ampvol->release_rate < 128)
+		{
+			v = *tr;
+			break;
+		}
+	}
+	if (v==NULL)
+	{
+		v = (voice *)malloc(sizeof(voice));
+		v->next = g_ctx->voices;
+		g_ctx->voices=v;
+		g_ctx->refcnt++;
+	}
 	shdrcast *sh = (shdrcast *)(shdrs + z->SampleId);
 	v->z = z;
 	v->sample = sh;
@@ -197,10 +303,7 @@ void applyZone(voice *v, zone_t *z, int midi, int vel)
 	short rt = z->OverrideRootKey > -1 ? z->OverrideRootKey : sh->originalPitch;
 	float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
 	float octaveDivv = ((float)midi * 100 - sampleTone) / 1200.0f;
-	v->ratio =
-
-			p2over1200(octaveDivv) * sh->sampleRate / 48000;
-
+	v->ratio = p2over1200(octaveDivv) * sh->sampleRate / 48000;
 	v->pos = v->start;
 	v->frac = 0.0f;
 	v->z = z;
@@ -209,11 +312,125 @@ void applyZone(voice *v, zone_t *z, int midi, int vel)
 	v->panLeft = panLeftLUT(z->Pan);
 	v->panRight = 1 - v->panLeft;
 }
-voice *newVoice(zone_t *z, int midi, int vel)
+
+ctx_t *init_ctx()
 {
-	voice *v = (voice *)malloc(sizeof(voice));
-	applyZone(v, z, midi, vel);
-	return v;
+	g_ctx = (ctx_t *)malloc(sizeof(ctx_t));
+	g_ctx->sampleRate = 48000;
+	g_ctx->currentFrame = 0;
+	g_ctx->samples_per_frame = 128;
+	for (int i = 0; i < 32; i++)
+	{
+		g_ctx->channels[i].program_number = 0;
+		g_ctx->channels[i].midi_volume = 1.0f;
+	}
+	g_ctx->voices = NULL;
+	g_ctx->refcnt = 0;
+	g_ctx->mastVol = 1.0f;
+	g_ctx->outputbuffer = (float *)malloc(sizeof(float) * g_ctx->samples_per_frame * 2);
+	return g_ctx;
+}
+void loopctx(voice *v, ctx_t *ctx, int flag)
+{
+	loop(v, ctx->outputbuffer);
+}
+void noteOn(int channelNumber, int midi, int vel, unsigned long when)
+{
+	get_sf(channelNumber, midi, vel);
 }
 
-#endif
+void noteOff(ctx_t *ctx, int ch, int midi)
+{
+	if ((ctx->voices + ch * 2)->midi == midi)
+	{
+		adsrRelease((ctx->voices + ch * 2)->ampvol);
+	}
+}
+void render(ctx_t *ctx)
+{
+	bzero(ctx->outputbuffer, sizeof(float) * ctx->samples_per_frame * 2);
+	int vs = 0;
+	voice **v = &ctx->voices;
+	while ((*v)!=NULL)
+	{
+		if ((*v)->ampvol->release_steps > 0)
+		{
+			loopctx(*v, ctx, 1);
+		}
+		else
+		{
+			voice *tmp = *v;
+			v = &((*v)->next);
+			free(tmp);
+		}
+		v = &((*v)->next);
+	}
+
+	ctx->currentFrame++;
+	float maxv = 1.0f, redradio = 1.0f;
+	float postGain = ctx->mastVol;
+	for (int i = 0; i < ctx->samples_per_frame; i++)
+	{
+		ctx->outputbuffer[i] *= postGain;
+		float absf = ctx->outputbuffer[i] > 0.f ? ctx->outputbuffer[i] : -1 * ctx->outputbuffer[i];
+
+		if (absf >= maxv)
+		{
+			//fprintf(stderr, "clipping at %f\n", absf);
+			maxv = absf;
+		}
+	}
+
+	if (ctx->outputFD!=NULL)
+		fwrite(ctx->outputbuffer, ctx->samples_per_frame * 2, 4, ctx->outputFD);
+}
+void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx))
+{
+	while (duration > 0.0f)
+	{
+		render(ctx);
+		if (cb)
+			cb(ctx);
+		duration -= 0.003f;
+	}
+}
+
+// static void AudioCallback(void *data, Uint8 *stream, int len)
+// {
+
+// 	g_ctx->outputbuffer = (float *)stream;
+// 	render(g_ctx);
+// }
+// int main()
+// {
+// 	SDL_AudioSpec OutputAudioSpec;
+// 	OutputAudioSpec.freq = 44100;
+// 	OutputAudioSpec.format = AUDIO_F32LSB;
+// 	OutputAudioSpec.channels = 2;
+// 	OutputAudioSpec.samples = 128;
+// 	OutputAudioSpec.callback = AudioCallback;
+// 	if (SDL_AudioInit(NULL) < 0)
+// 	{
+// 		fprintf(stderr, "Could not initialize audio hardware or driver\n");
+// 		return 1;
+// 	}
+
+// 	if (SDL_OpenAudio(&OutputAudioSpec, &OutputAudioSpec) < 0)
+// 	{
+// 		fprintf(stderr, "Could not open the audio hardware or the desired audio output format\n");
+// 		return 1;
+// 	}
+// 	init_ctx();
+// 	FILE *f = fopen("file.sf2", "rb");
+// 	if (!f)
+// 		perror("oaffdf");
+
+// 	readsf(f);
+// 	g_ctx->channels[0].program_number = phdrs[0].pid;
+// 	SDL_PauseAudio(0);
+
+// 	noteOn(0, 55, 33, 0);
+// 	float ob[128 * 2];
+// 	// Let the audio callback play some sound for 3 seconds
+// 	SDL_Delay(3000);
+// }
