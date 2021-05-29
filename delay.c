@@ -26,6 +26,7 @@ delay_t *newDelay(uint16_t size, uint16_t delay)
 
 void dl_write(delay_t *t, int n, float *fl)
 {
+	
 	while (n-- > 0)
 	{
 
