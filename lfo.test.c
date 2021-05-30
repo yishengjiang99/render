@@ -6,17 +6,18 @@ int main()
 {
 	readsf(fopen("file.sf2", "rb"));
 	ctx_t *ctx = init_ctx();
-	ctx->outputFD = stdout;
+	ctx->outputFD = fopen("o.pcm", "w");
 	ctx->channels[0].program_number = 60;
-	noteOn(0, 55, 44, 0);
+	ctx->channels[1].program_number = 0;
+
+	printf("noteon");
+	noteOn(1, 66, 44, 0);
+	noteOn(0, 58, 44, 0);
+
 	render_fordr(ctx, 1.0, NULL);
-	noteOff(caddr_t)
-			get_sf(ctx, 0);
-	float *buf = (float *)malloc(sizeof(float) * dspbuffersize * 2);
+	noteOff(1, 66);
+	render_fordr(ctx, 1.0, NULL);
+	noteOff(0, 58);
 
-	v->ratio = 1.0f;
-	loop(v, buf);
-
-	printf("%u %u", v->endloop - v->startloop, 1); //v->panLeft, 1;
-	return 1;
+	pclose(ctx->outputFD);
 }

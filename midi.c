@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 	int msec = 0;
 
 	pthread_t t;
-	//pthread_create(&t, NULL, &cb, (void *)ctx);
+	pthread_create(&t, NULL, &cb, (void *)ctx);
 	while (m != NULL)
 	{
 		msec += 3;
