@@ -58,12 +58,6 @@ typedef enum
 
 typedef struct
 {
-	char name[20];
-	uint16_t pid, bankId, pbagNdx;
-	char idc[12];
-} phdr;
-typedef struct
-{
 	unsigned short pgen_id, pmod_id;
 } pbag;
 typedef struct
@@ -105,6 +99,18 @@ typedef struct
 	//beloe
 	uint8_t dc[46];
 } shdr;
+typedef struct
+{
+	char name[20];
+	uint16_t pid, bankId, pbagNdx;
+	char idc[12];
+} phdr;
+typedef struct
+{
+	phdr heaer;
+	pbag *pbgs;
+	ibag *ibags;
+} preset;
 
 typedef struct
 {

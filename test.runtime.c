@@ -23,6 +23,28 @@ int main()
 	assert(g_ctx->voices->z != NULL);
 	assert(g_ctx->refcnt = 2);
 	assert(g_ctx->voices->ampvol->att_steps > 0);
-	printf("\n%f", g_ctx->voices->ampvol->att_rate);
-	printf("%d %d %f", g_ctx->voices->sample->originalPitch, g_ctx->voices->ratio);
+	//	printf("\n%d", g_ctx->voices->sample->start);
+
+#define printvoice(v)                        \
+	printf("\n %u,%u,\t%u %u,\t %u %u",        \
+				 v->sample->start, v->start,         \
+				 v->sample->startloop, v->startloop, \
+				 v->sample->endloop, v->endloop);
+	noteOn(0, 55, 77, 0);
+
+	printvoice(g_ctx->voices);
+	for (int i = 0; i < nphdrs - 1; i++)
+	{
+		if (phdrs[i].bankId != 0)
+			continue;
+		g_ctx->channels[i].program_number = phdrs[i].pid;
+		for (int m = 32; m < 78; m++)
+		{
+			//	printf("\n***%d %d\n", m, i);
+			noteOn(i, m, 55, 0);
+			noteOff(i, m);
+		}
+
+		g_ctx->voices = NULL;
+	}
 }

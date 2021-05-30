@@ -160,15 +160,11 @@ int int_cos(int *phase, int hz, int sr)
 
 	return (v * 10000) >> FRAC_BITS;
 }
-
-void cosinewave(short *s, int freq, int length)
+#include "call_ffp.c"
+int main()
 {
-
-	static int a = 0;
-	const int sample_rate = 48000;
-
-	for (int i = 0; i < 1 * length; i++)
-	{
-		*s++ = int_cos(&a, freq, sample_rate);
-	}
+	float s[10240];
+	cosinewave(&s[0], 8, 10240);
+	for (int i = 0; i < 1024; i++)
+		printf("\n%f", s[i]);
 }

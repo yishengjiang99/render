@@ -2,14 +2,13 @@
 #include <stdlib.h>
 #define TML_IMPLEMENTATION
 #include "tml.h"
-#include "ctx.c"
-#include "call_ffp.c"
+#include "sf2.c"
+#include "runtime.c"
 
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
-#include "mideff.c"
 #define BILLION 1000000000L
 #define MSEC 1000L
 
@@ -34,6 +33,8 @@ void *cb(void *args)
 }
 int main(int argc, char **argv)
 {
+	tml_message *m = tml_load_filename("song.mid");
+
 	channel_t *ch;
 	ctx_t *ctx = init_ctx();
 	readsf(fopen("file.sf2", "rb"));
@@ -60,7 +61,7 @@ int main(int argc, char **argv)
 					ch->midi_volume = m->control_value;
 					break;
 				default:
-					printf("cc %s %x %x %x\n", *(eff + (int)(m->control)), m->control, m->channel, m->control_value);
+					printf("cc %s %x %x\n", m->control, m->channel, m->control_value);
 
 					break;
 				}

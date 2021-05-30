@@ -10,10 +10,18 @@
 #define trshift &((*tr)->next)
 #define trspawn &((*tr)->link)
 #define pbg(j) pgens + (pbags + j)->pgen_id
-
+#define ibg(l) igens + (ibags + l)->igen_id
 #define filterkv(trval, key, vel) \
 	(trval->key).lo > key || (trval->key).hi<key || trval->vel.lo> vel || trval->vel.hi < vel
 
+#define merge(attra, attrb)    \
+	for (int i = 0; i < 60; i++) \
+		attra[i] = attrb[i];
+
+#define mergeadd(attra, attrb) \
+	for (int i = 0; i < 60; i++) \
+		attra[i] += attrb[i];      \
+	retrun attra;
 #define sr 48000
 
 #define _GEN(_name) _name
@@ -113,6 +121,7 @@ preset *newPreset(phdr phr, pgen_t *g1, pgen_t *gl)
 	t->vel.hi = 128;
 	t->key.lo = 0;
 	t->key.hi = 128;
+
 	while (g1 != gl)
 	{
 		switch (g1->genid)
@@ -187,13 +196,12 @@ preset *IndexPresets()
 		{
 			//s("\n \t pbag %d", j);
 			preset *pbagPreset = newPreset(phdrs[i], pbg(j), pbg(j + 1));
-			insert(&(pdef->link), pbagPreset, pdef->pkey << 7 | j);
+			insert(&pdef->link, pbagPreset, pdef->pkey << 7 | j);
 			if (pbagPreset->z.Instrument > -1)
 			{
 				short k = pbagPreset->z.Instrument;
 
 				int l = insts[k].ibagNdx;
-#define ibg(l) igens + (ibags + l)->igen_id
 				preset *instDefault = newPreset(phdrs[i], ibg(l), ibg(l + 1));
 				insert(&(pbagPreset->link), instDefault, pbagPreset->pkey << 7 | l);
 				while (++l < insts[k + 1].ibagNdx)
@@ -206,13 +214,16 @@ preset *IndexPresets()
 	}
 	return psets;
 }
-#define printz(trval)                                                                  \
-	printf("\n%s %d %d, \n\rsamp %d inst %d\n", trval->hdr.name, trval->hdr.pid,         \
-				 trval->hdr.bankId, trval->attrs[SampleId], trval->attrs[Instrument]);         \
-	printf("%d %d %d %d\n", trval->key.lo, trval->key.hi, trval->vel.lo, trval->vel.hi); \
-	for (int i = 0; i < 60; i++)                                                         \
+#define printz(trval)                               \
+	printf("\n%s %d %d, \n\rsamp %d inst %d\n",       \
+				 trval->hdr.name, trval->hdr.pid,           \
+				 trval->hdr.bankId, trval->attrs[SampleId], \
+				 trval->attrs[Instrument]);                 \
+	// printf("%d %d %d %d\n", trval->key.lo,               \
+	// 			 trval->key.hi, trval->vel.lo, trval->vel.hi); \
+	for (int i = 0; i < 60; i++)                         \
 		printf("%d,", trval->attrs[i]);
-//depth-first prirnt'=]
+
 void dfprint(preset *p, int dep)
 {
 	if (dep > 3)
@@ -225,8 +236,8 @@ void dfprint(preset *p, int dep)
 		while (depc-- > 0)
 			printf("--");
 
-		// if (trval->link)
-		// 	dfprint(trspawn, dep + 1);
+		if (trval->link)
+			dfprint(trspawn, dep + 1);
 		tr = trshift;
 		printz(trval);
 		dfprint(trval, dep);
@@ -238,58 +249,48 @@ int main()
 {
 	readsf(fopen("file.sf2", "rb"));
 	preset *p = IndexPresets();
-	preset *pdef = ff(p, 60, 0);
-	preset **tr = &pdef;
-	int key = 44;
-	printz(trval);
-#define merge(attra, attrb)    \
-	for (int i = 0; i < 60; i++) \
-	attra[i] = attrb[i];
-
-#define mergeadd(attra, attrb) \
-	for (int i = 0; i < 60; i++) \
-		attra[i] += attrb[i];      \
-	retrun attra;
-
-	for (preset **tr = &pdef->link; trval != NULL; trshift)
-	{
-		short patts[60], atts[60];
-
-		if (trval->key.hi < key && trval->key.lo > key)
-		{
-			patts = merge(pdef->attrs, trval->attrs);
-
-			tr = trspawn;
-			preset *idef = trval;
-			for (tr = trspawn; trval != NULL; trshift)
-			{
-				if (trval->key.hi < key && trval->key.lo > key)
-				{
-					merge(atts, idef->attrs);
-					merge(atts, trval->attrs);
-					mergeAdd()
-				}
-			}
-		}
-	}
-	printz(trval->link);
-	tr = trspawn;
-	do
-	{
-		printz(trval);
-		tr = trshift;
-	} while (*trshift);
-	tr = trspawn;
-	printf("ibgdef");
-	printz(trval);
-
-	while (trval != NULL)
-	{
-		printz(trval);
-
-		tr = trshift;
-	}
-
-	//	dfprint(h, 0); ///p, 0);
+	dfprint(p, 1);
 }
+
+// 	for (preset **tr = &pdef->link; trval != NULL; trshift)
+// 	{
+// 		short patts[60], atts[60];
+
+// 		if (trval->key.hi < key && trval->key.lo > key)
+// 		{
+// 			//patts = merge(pdef->attrs, trval->attrs);
+
+// 			tr = trspawn;
+// 			preset *idef = trval;
+// 			for (tr = trspawn; trval != NULL; trshift)
+// 			{
+// 				if (trval->key.hi < key && trval->key.lo > key)
+// 				{
+// 					merge(atts, idef->attrs);
+// 					merge(atts, trval->attrs);
+// 					//mergeAdd();
+// 				}
+// 			}
+// 		}
+// 	}
+// 	printz(trval->link);
+// 	tr = trspawn;
+// 	do
+// 	{
+// 		printz(trval);
+// 		tr = trshift;
+// 	} while (*trshift);
+// 	tr = trspawn;
+// 	printf("ibgdef");
+// 	printz(trval);
+
+// 	while (trval != NULL)
+// 	{
+// 		printz(trval);
+
+// 		tr = trshift;
+// 	}
+
+// 	//	dfprint(h, 0); ///p, 0);
+// }
 #endif

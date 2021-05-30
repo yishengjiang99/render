@@ -4,7 +4,6 @@
 #include "cosine.c"
 #include "call_ffp.c"
 #include "sf2.c"
-#include "libs/wavetable-oscillator.c"
 int main()
 {
 	short cos[4096];

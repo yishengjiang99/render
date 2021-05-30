@@ -4,6 +4,8 @@
 #include "call_ffp.c"
 #include "minisdl_audio.h"
 #include "luts.c"
+#define output_sampleRate 48000
+#define dspbuffersize 32
 typedef struct
 {
 	uint32_t att_steps, decay_steps, release_steps, delay_steps, hold_steps;
@@ -19,7 +21,7 @@ typedef struct _voice
 	uint32_t pos;
 	float frac;
 	float ratio;
-	adsr_t *ampvol;
+	adsr_t *ampvol, *moddvol;
 	int midi;
 	int velocity;
 	int chid;
@@ -48,7 +50,7 @@ typedef struct _ctx
 	FILE *outputFD;
 } ctx_t;
 
-void applyZone(zone_t *z, int midi, int vel);
+void applyZone(zone_t *z, int midi, int vel, int cid);
 #define output_sampleRate 48000
 #define dspbuffersize 32
 
@@ -116,65 +118,59 @@ static inline float panLeftLUT(short Pan)
 	}
 }
 #endif
-void p2(int instID, int key, int vel, short attrs[])
+short attrs[240];
+void sanitizedInsert(short *attrs, int i, pgen_t *g)
 {
-	int lastSampId = -1;
-	inst *ihead = insts + instID;
-	int ibgId = ihead->ibagNdx;
-	int lastibg = (ihead + 1)->ibagNdx;
-	for (int ibg = ibgId; ibg < lastibg; ibg++)
+	switch (i % 60)
 	{
-		lastSampId = -1;
-		ibag *ibgg = ibags + ibg;
-		pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id : igens + nigens - 1;
-		for (pgen_t *g = igens + ibgg->igen_id; g->genid != 60 && g != lastig; g++)
-		{
-
-			if (vel > -1 && g->genid == 44 && (g->val.ranges.lo > vel || g->val.ranges.hi < vel))
-				break;
-			if (key > -1 && g->genid == 43 && (g->val.ranges.lo > key || g->val.ranges.hi < key))
-				break;
-
-			if (g->genid == 53)
-			{
-				lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
-			}
-			attrs[60 + g->genid] = g->val.shAmount;
-		}
-		if (lastSampId > -1)
-		{
-		
-
-			for (int i = 0; i < 60; i++)
-			{
-				attrs[i] = attrs[60 + i] + attrs[i];
-			}
-			applyZone((zone_t *)attrs, key, vel);
-		}
+	case StartAddrOfs:
+	case EndAddrOfs:
+	case StartLoopAddrOfs:
+	case EndLoopAddrOfs:
+	case StartAddrCoarseOfs:
+	case EndAddrCoarseOfs:
+	case StartLoopAddrCoarseOfs:
+	case EndLoopAddrCoarseOfs:
+		attrs[i] = g->val.uAmount;
+		break;
+	default:
+		attrs[i] = g->val.shAmount;
+		break;
 	}
 }
-
 void get_sf(int channelNumer, int key, int vel)
 {
+	short attrs[240];
 	int bkid = channelNumer == 9 ? 128 : 0;
 	int pid = g_ctx->channels[channelNumer].program_number;
+	int found = 0;
 
-	short attrs[120];
 	int instID = -1, lastSampId = -1;
+	enum
+	{
+		default_pbg_cache_index = 0,
+		pbg_attr_cache_index = 60,
+		default_ibagcache_idex = 120,
+		ibg_attr_cache_index = 180
+
+	};
 	for (int i = 0; i < nphdrs - 1; i++)
 	{
 		if (phdrs[i].bankId != bkid || phdrs[i].pid != pid)
 			continue;
 		int lastbag = phdrs[i + 1].pbagNdx;
+		bzero(&attrs[default_pbg_cache_index], 180 * sizeof(short));
+
 		for (int j = phdrs[i].pbagNdx; j < lastbag; j++)
 		{
-
-			bzero(&attrs[0], 60 * sizeof(short));
+			int attr_inex = j == phdrs[i].pbagNdx ? default_pbg_cache_index : pbg_attr_cache_index;
+			bzero(&attrs[pbg_attr_cache_index], 120 * sizeof(short));
 
 			pbag *pg = pbags + j;
 			pgen_t *lastg = pgens + pg[j + 1].pgen_id;
 			int pgenId = pg->pgen_id;
 			int lastPgenId = j < npbags - 1 ? pbags[j + 1].pgen_id : npgens - 1;
+
 			for (int k = pgenId; k < lastPgenId; k++)
 			{
 				pgen *g = pgens + k;
@@ -182,16 +178,56 @@ void get_sf(int channelNumer, int key, int vel)
 					break;
 				else if (key > -1 && g->genid == KeyRange && (g->val.ranges.lo > key || g->val.ranges.hi < key))
 					break;
-				 if (g->genid==Instrument)
+				if (g->genid != Instrument)
+				{
+
+					sanitizedInsert(attrs, g->genid + attr_inex, g);
+				}
+				else
 				{
 					instID = g->val.shAmount;
-					attrs[g->genid] = g->val.shAmount;
-					p2(instID, key, vel, attrs);
+					sanitizedInsert(attrs, g->genid + attr_inex, g);
+					bzero(&attrs[default_ibagcache_idex], 120 * sizeof(short));
+
+					int lastSampId = -1;
+					inst *ihead = insts + instID;
+					int ibgId = ihead->ibagNdx;
+					int lastibg = (ihead + 1)->ibagNdx;
+					for (int ibg = ibgId; ibg < lastibg; ibg++)
+					{
+						bzero((&attrs[0] + ibg_attr_cache_index), 60 * sizeof(short));
+						attr_inex = ibg == ibgId ? default_ibagcache_idex : ibg_attr_cache_index;
+
+						lastSampId = -1;
+						ibag *ibgg = ibags + ibg;
+						pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id : igens + nigens - 1;
+						for (pgen_t *g = igens + ibgg->igen_id; g->genid != 60 && g != lastig; g++)
+						{
+
+							if (vel > -1 && g->genid == VelRange && (g->val.ranges.lo > vel || g->val.ranges.hi < vel))
+								break;
+							if (key > -1 && g->genid == KeyRange && (g->val.ranges.lo > key || g->val.ranges.hi < key))
+								break;
+							sanitizedInsert(attrs, attr_inex + g->genid, g);
+
+							if (g->genid == SampleId)
+							{
+								lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
+								for (int i = 0; i < 60; i++)
+								{
+									attrs[i] = attrs[ibg_attr_cache_index + i] || attrs[default_ibagcache_idex + i];
+									attrs[i] += (attrs[pbg_attr_cache_index + i] || attrs[default_pbg_cache_index + i]);
+								}
+								applyZone((zone_t *)attrs, key, vel, channelNumer);
+								found++;
+							}
+						}
+					}
 				}
 			}
-
 		}
 	}
+	//	printf("#zones %d\n", found);
 }
 
 adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay, short sustain, int sampleRate)
@@ -239,9 +275,6 @@ void adsrRelease(adsr_t *env)
 	env->att_steps = 0;
 }
 
-#define output_sampleRate 48000
-#define dspbuffersize 32
-
 void loop(voice *v, float *output)
 {
 	uint32_t loopLength = v->endloop - v->startloop;
@@ -255,7 +288,7 @@ void loop(voice *v, float *output)
 		float o2 = *(output + 2 * i);
 		float gain = f1 + (f2 - f1) * v->frac;
 
-		float mono = gain * centdblut(envShift(v->ampvol)); // + attentuate); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];
+		float mono = gain * centdblut(envShift(v->ampvol));
 		*(output + 2 * i) += mono * v->panRight;
 		*(output + 2 * i + 1) += mono * v->panLeft;
 
@@ -272,9 +305,9 @@ void loop(voice *v, float *output)
 	}
 }
 
-void applyZone(zone_t *z, int midi, int vel)
+void applyZone(zone_t *z, int midi, int vel, int channelNumber)
 {
-	voice *v=NULL;
+	voice *v = NULL;
 	voice **tr = &g_ctx->voices;
 	while (*tr)
 	{
@@ -284,22 +317,23 @@ void applyZone(zone_t *z, int midi, int vel)
 			break;
 		}
 	}
-	if (v==NULL)
+	if (v == NULL)
 	{
 		v = (voice *)malloc(sizeof(voice));
 		v->next = g_ctx->voices;
-		g_ctx->voices=v;
+		g_ctx->voices = v;
 		g_ctx->refcnt++;
 	}
 	shdrcast *sh = (shdrcast *)(shdrs + z->SampleId);
 	v->z = z;
 	v->sample = sh;
-	v->start = sh->start + ((unsigned short)(z->StartAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->StartAddrOfs & 0x7f);
-	v->end = sh->end + ((unsigned short)(z->EndAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->EndAddrOfs & 0x7f);
-	v->endloop = sh->endloop + ((unsigned short)(z->EndLoopAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->EndLoopAddrOfs & 0x7f);
-	v->startloop = sh->startloop + (unsigned short)(z->StartLoopAddrCoarseOfs & 0x7f << 15) + (unsigned short)(z->StartLoopAddrOfs & 0x7f);
-	v->ampvol = newEnvelope(z->VolEnvAttack, z->VolEnvRelease, z->VolEnvDecay, z->VolEnvSustain, 48000);
+	v->start = sh->start + (z->StartAddrCoarseOfs << 15) + z->StartAddrOfs;
+	v->end = sh->end + (z->EndAddrCoarseOfs << 15) + z->EndAddrOfs;
 
+	v->endloop = sh->endloop + (z->EndLoopAddrCoarseOfs << 15) + z->EndLoopAddrOfs;
+	v->startloop = sh->startloop + StartLoopAddrCoarseOfs + StartLoopAddrOfs;
+	v->ampvol = newEnvelope(z->VolEnvAttack, z->VolEnvRelease, z->VolEnvDecay, z->VolEnvSustain, 48000);
+	v->chid = channelNumber;
 	short rt = z->OverrideRootKey > -1 ? z->OverrideRootKey : sh->originalPitch;
 	float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
 	float octaveDivv = ((float)midi * 100 - sampleTone) / 1200.0f;
@@ -319,7 +353,7 @@ ctx_t *init_ctx()
 	g_ctx->sampleRate = 48000;
 	g_ctx->currentFrame = 0;
 	g_ctx->samples_per_frame = 128;
-	for (int i = 0; i < 32; i++)
+	for (int i = 0; i < 16; i++)
 	{
 		g_ctx->channels[i].program_number = 0;
 		g_ctx->channels[i].midi_volume = 1.0f;
@@ -339,11 +373,16 @@ void noteOn(int channelNumber, int midi, int vel, unsigned long when)
 	get_sf(channelNumber, midi, vel);
 }
 
-void noteOff(ctx_t *ctx, int ch, int midi)
+void noteOff(int ch, int midi)
 {
-	if ((ctx->voices + ch * 2)->midi == midi)
+	voice **tr = &g_ctx->voices;
+	while (*tr)
 	{
-		adsrRelease((ctx->voices + ch * 2)->ampvol);
+		if ((*tr)->chid == ch && (*tr)->midi == midi)
+		{
+			adsrRelease((*tr)->ampvol);
+		}
+		tr = &(*tr)->next;
 	}
 }
 void render(ctx_t *ctx)
@@ -351,7 +390,7 @@ void render(ctx_t *ctx)
 	bzero(ctx->outputbuffer, sizeof(float) * ctx->samples_per_frame * 2);
 	int vs = 0;
 	voice **v = &ctx->voices;
-	while ((*v)!=NULL)
+	while ((*v) != NULL)
 	{
 		if ((*v)->ampvol->release_steps > 0)
 		{
@@ -381,7 +420,7 @@ void render(ctx_t *ctx)
 		}
 	}
 
-	if (ctx->outputFD!=NULL)
+	if (ctx->outputFD != NULL)
 		fwrite(ctx->outputbuffer, ctx->samples_per_frame * 2, 4, ctx->outputFD);
 }
 void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx))

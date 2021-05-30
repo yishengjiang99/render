@@ -31,7 +31,6 @@ int readsf(FILE *fd)
 		*trace++ = *(data + i) / 32767.0f;
 	}
 
-
 #define readSection(section)                  \
 	fread(sh, sizeof(section_header), 1, fd);   \
 	printf("%.4s:%u\n", sh->name, sh->size);    \
@@ -45,6 +44,7 @@ int readsf(FILE *fd)
 	printf("%.4s %u \n", h2->name, h2->size);
 
 	readSection(phdr);
+
 	readSection(pbag);
 	readSection(pmod);
 	readSection(pgen);

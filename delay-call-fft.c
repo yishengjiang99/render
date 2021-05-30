@@ -35,19 +35,28 @@ void input_time_domain_floats(int n, float *reals, complex *x, double *stbl)
 		x++;
 	}
 }
-
+float *complex_gt_real_floats(complex *cs, int n)
+{
+	float *f = cs;
+	while (n--)
+	{
+		*f = (float)cs->real;
+		cs++;
+		f++;
+	}
+	return f;
+}
 int main()
 {
 
-	readsf(fopen("file.sf2", "rb"));
-	init_ctx();
-	g_ctx->channels[0].program_number = phdrs[0].pid;
-	noteOn(0, 88, 100, 0);
 	delay_t *dl = newDelay(4096, 1024);
 	complex *cs = (complex *)malloc(sizeof(complex) * 4096);
+	init_ctx();
+
 	g_ctx->outputFD = wavepic("wave.png");
 	fftrecod = fopen("fftrecod.txt", "w");
 	ifftr = fopen("ifftr.txt", "w");
+	FILE *after = wavepic("waveafter.png");
 	int ffttook = 0;
 
 	for (int i = 0; i < 58000; i += 128)
@@ -60,7 +69,12 @@ int main()
 			input_time_domain_floats(4096, dl->buffer, cs, &(stbl[0]));
 			ffttook++;
 		}
+		fwrite(complex_gt_real_floats(cs, 4096), 4096, 4, after);
 	}
 	pclose(g_ctx->outputFD);
+
+	fclose(after);
+	system(
+			"open waveafter.png");
 	//assert(oscillator[0].phase > 0);
 }
