@@ -20,4 +20,5 @@ int main()
 	noteOff(0, 58);
 
 	pclose(ctx->outputFD);
+	system("ffplay -f f32le -i o.pcm");
 }

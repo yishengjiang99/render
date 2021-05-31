@@ -1,5 +1,6 @@
 #ifndef LPF_C
 #define LPF_C
+#include <math.h>
 #include <string.h>
 typedef struct
 {
@@ -18,21 +19,15 @@ typedef struct
 
 #define pi 3.1415f
 
-lpf *newLpf(lpf *l, float cutoff_freq, int sample_rate)
+lpf *newLpf(lpf *l, float cutoff_freq, float sample_rate)
 {
-
+	l->sample_rate = sample_rate;
 	l->cutoff_freq = cutoff_freq;
 	l->m1 = 0;
-	l->X = expf(-2.0f * pi * (float)l->cutoff_freq / sample_rate);
+	l->X = expf(-2.0f * pi * (float)(l->cutoff_freq / l->sample_rate));
 	return l;
 }
 
-void process(lpf *l)
-{
-	l->output = l->input * (1 - l->X) + l->m1 * l->X;
-	l->m1 = l->output;
-	memcpy(&l->m1, &l->output, 4);
-}
 float process_input(lpf *l, float input)
 {
 	l->input = input;

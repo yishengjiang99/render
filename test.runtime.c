@@ -19,32 +19,31 @@ int main()
 	assert(g_ctx->mastVol > 0.0f);
 	g_ctx->channels->program_number = phdrs[0].pid;
 	noteOn(0, 55, 77, 0);
-	assert(g_ctx->voices != NULL);
-	assert(g_ctx->voices->z != NULL);
-	assert(g_ctx->refcnt = 2);
-	assert(g_ctx->voices->ampvol->att_steps > 0);
-	//	printf("\n%d", g_ctx->voices->sample->start);
+	assert(g_ctx->channels->voices != NULL);
+	assert(g_ctx->channels->voices->next == NULL);
 
 #define printvoice(v)                        \
 	printf("\n %u,%u,\t%u %u,\t %u %u",        \
 				 v->sample->start, v->start,         \
 				 v->sample->startloop, v->startloop, \
 				 v->sample->endloop, v->endloop);
-	noteOn(0, 55, 77, 0);
 
-	printvoice(g_ctx->voices);
-	for (int i = 0; i < nphdrs - 1; i++)
+	printvoice(g_ctx->channels[0].voices);
+	g_ctx->outputFD = ffp(2, 48000);
+	g_ctx->channels[0].voices = NULL;
+	for (int i = 0; i < 8; i++)
 	{
 		if (phdrs[i].bankId != 0)
 			continue;
 		g_ctx->channels[i].program_number = phdrs[i].pid;
 		for (int m = 32; m < 78; m++)
 		{
-			//	printf("\n***%d %d\n", m, i);
+			printf("\n***%d %d\n", m, i);
 			noteOn(i, m, 55, 0);
+			render_fordr(g_ctx, .2, NULL);
 			noteOff(i, m);
+			render_fordr(g_ctx, 1, NULL);
 		}
-
-		g_ctx->voices = NULL;
+		break;
 	}
 }

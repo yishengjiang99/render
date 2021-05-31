@@ -1,34 +1,26 @@
-#include "sf2.c"
-#include "list.c"
 
-typedef struct zone
+const float sampleRate = 44100;
+float coeff;
+float currentLevel;
+#include <math.h>
+#include <stdio.h>
+void init(float levelBegin, float levelEnd, float releaseTime)
 {
-	int pid;
-	int lowKey, hiKey;
-	short attr[60];
-	zone_t *next;
-} zone_t;
+	currentLevel = levelBegin;
+	coeff = (log(levelEnd) - log(levelBegin)) /
+					(releaseTime * sampleRate);
+}
 
-zone_t *head = NULL;
-zone_t *newZone()
+void calculateEnvelope(int samplePoints)
 {
-	zone_t *nz;
-	nz = (zone_t *)malloc(sizeof(zone_t));
-	nz->next = NULL;
+	for (int i = 0; i < samplePoints; i++)
+	{
+		currentLevel += coeff * currentLevel;
+	}
 }
-void insert(zone_t *z)
-{
-}
+
 int main()
 {
-	readsf(fopen("file.sf2", "rb"));
-	zone_t **head = NULL;
-	for (int i = 0; i < nphdrs - 1; i++)
-	{
-		zone_t *z = newZone();
-		z->pid = phdrs[i].pid | phdrs[i].bankId;
-	}
-
-	int pg = pbags[phdrs[0].pbagNdx].pgen_id;
-	pgen_t *pg = (pgen_t)
+	init(.899, .333, 1.0f);
+	calculateEnvelope(48000);
 }

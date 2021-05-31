@@ -35,6 +35,7 @@ typedef struct
 	int program_number;
 	unsigned short midi_volume;
 	unsigned short midi_pan;
+	voice *voices;
 } channel_t;
 
 typedef struct _ctx
@@ -45,7 +46,6 @@ typedef struct _ctx
 	int refcnt;
 	float mastVol;
 	channel_t channels[16];
-	voice *voices;
 	float *outputbuffer;
 	FILE *outputFD;
 } ctx_t;
@@ -131,6 +131,7 @@ void sanitizedInsert(short *attrs, int i, pgen_t *g)
 	case EndAddrCoarseOfs:
 	case StartLoopAddrCoarseOfs:
 	case EndLoopAddrCoarseOfs:
+	case OverrideRootKey:
 		attrs[i] = g->val.uAmount & 0x7f;
 		break;
 	default:
@@ -212,7 +213,7 @@ void get_sf(int channelNumer, int key, int vel)
 
 							if (g->genid == SampleId)
 							{
-								short zoneattr[60];
+								short zoneattr[60] = {0};
 								lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
 								for (int i = 0; i < 60; i++)
 								{
@@ -268,15 +269,25 @@ float envShift(adsr_t *env)
 	{
 		env->decay_steps--;
 		env->db_attenuate += env->decay_rate;
+		//	printf("\n decay %f %d %f", env->db_attenuate, env->decay_steps, env->decay_rate);
 	}
 	else if (env->release_steps > 0)
 	{
 		env->release_steps--;
 		env->db_attenuate += env->release_rate;
+		//	printf("\nrelease %f %d %f", env->db_attenuate, env->release_steps, env->release_rate);
 	}
+	//printf("%f", env->db_attenuate);
 	if (env->db_attenuate > 960)
 	{
-		env->db_attenuate = 960.0f;
+		if (env->att_steps <= 0)
+		{
+			env->decay_steps = 0;
+		}
+		else
+		{
+			env->db_attenuate = 960.0f;
+		}
 	}
 	if (env->db_attenuate < 0.0)
 	{
@@ -289,7 +300,8 @@ void adsrRelease(adsr_t *env)
 	env->decay_steps = 0;
 	env->att_steps = 0;
 }
-
+#define trval (*tr)
+#define trshift &((*tr)->next)
 void loop(voice *v, float *output)
 {
 	uint32_t loopLength = v->endloop - v->startloop;
@@ -319,14 +331,27 @@ void loop(voice *v, float *output)
 		}
 	}
 }
-
+void insertV(voice **start, voice *nv)
+{
+	voice **tr = start;
+	while (*tr)
+		tr = &((*tr)->next);
+	*tr = nv;
+}
+float calcratio(zone_t *z, shdrcast *sh, int midi)
+{
+	short rt = z->OverrideRootKey > 0 ? z->OverrideRootKey : sh->originalPitch;
+	float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
+	float octaveDivv = (float)midi * 100 - sampleTone;
+	return p2over1200(octaveDivv) * (float)sh->sampleRate / 48000.0f;
+}
 void applyZone(zone_t *z, int midi, int vel, int channelNumber)
 {
 
 	voice *v = (voice *)malloc(sizeof(voice));
-	v->next = g_ctx->voices;
-	g_ctx->voices = v;
-	g_ctx->refcnt++;
+	v->next = g_ctx->channels[channelNumber].voices;
+	g_ctx->channels[channelNumber].voices = v;
+
 	shdrcast *sh = (shdrcast *)(shdrs + z->SampleId);
 	v->z = z;
 	v->sample = sh;
@@ -336,10 +361,7 @@ void applyZone(zone_t *z, int midi, int vel, int channelNumber)
 	v->startloop = sh->startloop + (unsigned short)(z->StartLoopAddrCoarseOfs & 0x7f << 15) + (unsigned short)(z->StartLoopAddrOfs & 0x7f);
 	v->ampvol = newEnvelope(z->VolEnvAttack, z->VolEnvRelease, z->VolEnvDecay, z->VolEnvSustain, 48000);
 	v->chid = channelNumber;
-	short rt = z->OverrideRootKey > -1 ? z->OverrideRootKey : sh->originalPitch;
-	float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
-	float octaveDivv = ((float)midi * 100 - sampleTone) / 1200.0f;
-	v->ratio = p2over1200(octaveDivv) * sh->sampleRate / 48000;
+	v->ratio = calcratio(z, sh, midi);
 	v->pos = v->start;
 	v->frac = 0.0f;
 	v->z = z;
@@ -347,6 +369,7 @@ void applyZone(zone_t *z, int midi, int vel, int channelNumber)
 	v->velocity = vel;
 	v->panLeft = panLeftLUT(z->Pan);
 	v->panRight = 1 - v->panLeft;
+	//insertV(&(g_ctx->channels[channelNumber].voices), v);
 }
 
 ctx_t *init_ctx()
@@ -359,8 +382,8 @@ ctx_t *init_ctx()
 	{
 		g_ctx->channels[i].program_number = 0;
 		g_ctx->channels[i].midi_volume = 1.0f;
+		g_ctx->channels[i].voices = NULL;
 	}
-	g_ctx->voices = NULL;
 	g_ctx->refcnt = 0;
 	g_ctx->mastVol = 1.0f;
 	g_ctx->outputbuffer = (float *)malloc(sizeof(float) * g_ctx->samples_per_frame * 2);
@@ -377,10 +400,10 @@ void noteOn(int channelNumber, int midi, int vel, unsigned long when)
 
 void noteOff(int ch, int midi)
 {
-	voice **tr = &(g_ctx->voices);
+	voice **tr = &(g_ctx->channels[ch].voices);
 	while (*tr)
 	{
-		if ((*tr)->chid == ch && (*tr)->midi == midi)
+		if ((*tr)->midi == midi)
 		{
 			adsrRelease((*tr)->ampvol);
 		}
@@ -391,21 +414,20 @@ void render(ctx_t *ctx)
 {
 	bzero(ctx->outputbuffer, sizeof(float) * ctx->samples_per_frame * 2);
 	int vs = 0;
-	voice *v = ctx->voices;
-	voice *prev = ctx->voices;
-	while (v)
+	for (int i = 0; i < 16; i++)
 	{
-		if (v->ampvol->release_steps > 0)
+		voice **tr = &g_ctx->channels[i].voices;
+		if (trval)
 		{
-			loopctx(v, ctx, 1);
-			prev = v;
-			v = v->next;
-		}
-		else
-		{
-			prev->next = v->next;
-			ctx->refcnt--;
-			v = v->next;
+			if (trval->ampvol->release_steps <= 128)
+			{
+				trval = trval->next;
+			}
+			else
+			{
+				loop(trval, g_ctx->outputbuffer);
+			}
+			tr = trshift;
 		}
 	}
 

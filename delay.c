@@ -5,7 +5,7 @@
 typedef unsigned int uint32_t;
 typedef struct _delay
 {
-	uint16_t size;
+	uint32_t size;
 	float *buffer;
 	float *end;
 	float *read;
@@ -13,7 +13,7 @@ typedef struct _delay
 
 } delay_t;
 
-delay_t *newDelay(uint16_t size, uint16_t delay)
+delay_t *newDelay(uint32_t size, uint32_t delay)
 {
 	delay_t *t = (delay_t *)malloc(sizeof(delay_t));
 	t->size = size;
