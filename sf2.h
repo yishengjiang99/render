@@ -110,7 +110,7 @@ typedef struct
 	phdr heaer;
 	pbag *pbgs;
 	ibag *ibags;
-} preset;
+} preseta;
 
 typedef struct
 {
@@ -130,7 +130,15 @@ typedef struct
 			StartAddrCoarseOfs, ModLFO2Pitch, VibLFO2Pitch, ModEnv2Pitch, FilterFc, FilterQ, ModLFO2FilterFc, ModEnv2FilterFc,
 			EndAddrCoarseOfs, ModLFO2Vol, Unused1, ChorusSend, ReverbSend, Pan, Unused2, Unused3, Unused4, ModLFODelay, ModLFOFreq, VibLFODelay, VibLFOFreq, ModEnvDelay, ModEnvAttack, ModEnvHold, ModEnvDecay, ModEnvSustain, ModEnvRelease, Key2ModEnvHold, Key2ModEnvDecay, VolEnvDelay, VolEnvAttack, VolEnvHold, VolEnvDecay, VolEnvSustain, VolEnvRelease, Key2VolEnvHold, Key2VolEnvDecay, Instrument, Reserved1, KeyRange, VelRange, StartLoopAddrCoarseOfs, Keynum, Velocity, Attenuation, Reserved2, EndLoopAddrCoarseOfs, CoarseTune, FineTune, SampleId, SampleModes, Reserved3, ScaleTune, ExclusiveClass, OverrideRootKey, Dummy;
 } zone_t;
-
+typedef struct
+{
+	phdr hdr;
+	int npresets;
+	zone_t *zones;
+} PresetZones;
+PresetZones findPresetZones(int i, int nregions);
+PresetZones findPresetByName(const char *name);
+int findPresetZonesCount(int i);
 static int nphdrs, npbags, npgens, npmods, nshdrs, ninsts, nimods, nigens, nibags, nshrs;
 
 static phdr *phdrs;
@@ -146,6 +154,7 @@ static short *data;
 static void *info;
 static int nsamples;
 static float *sdta;
+static PresetZones *presetZones;
 
 enum grntypes
 {
@@ -210,4 +219,12 @@ enum grntypes
 	OverrideRootKey,
 	Dummy
 };
+#define fivezeros 0, 0, 0, 0, 0
+#define defenvel -12000, -12000, -12000, -12000, 0, -12000
+
+#define defattrs                                                                   \
+	{                                                                                \
+			fivezeros, 0, 0, 0, 13500, fivezeros, fivezeros, 0, 0, -12000, 0, -12000, 0, \
+			defenvel, 0, 0, defenvel, fivezeros, 0, 0,                                   \
+			-1, -1, fivezeros, 0, 0, 100, 0, -1};
 #endif

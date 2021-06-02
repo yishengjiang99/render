@@ -26,7 +26,7 @@ typedef struct _voice
 	int chid;
 	float panLeft, panRight;
 	short attenuate;
-	lpf *lpf;
+	lpf_t *lpf;
 	struct _voice *next;
 } voice;
 
@@ -119,26 +119,7 @@ static inline float panLeftLUT(short Pan)
 }
 #endif
 short attrs[240];
-void sanitizedInsert(short *attrs, int i, pgen_t *g)
-{
-	switch (i % 60)
-	{
-	case StartAddrOfs:
-	case EndAddrOfs:
-	case StartLoopAddrOfs:
-	case EndLoopAddrOfs:
-	case StartAddrCoarseOfs:
-	case EndAddrCoarseOfs:
-	case StartLoopAddrCoarseOfs:
-	case EndLoopAddrCoarseOfs:
-	case OverrideRootKey:
-		attrs[i] = g->val.uAmount & 0x7f;
-		break;
-	default:
-		attrs[i] = g->val.shAmount;
-		break;
-	}
-}
+
 void get_sf(int channelNumer, int key, int vel)
 {
 	short attrs[240] = {0};
@@ -375,7 +356,7 @@ void applyZone(zone_t *z, int midi, int vel, int channelNumber)
 	v->panRight = 1 - v->panLeft;
 	if (z->FilterFc < 13000)
 	{
-		v->lpf = malloc(sizeof(lpf));
+		v->lpf = (lpf_t *)malloc(sizeof(lpf_t));
 		newLpf(v->lpf, centtone2freq(z->FilterFc), g_ctx->sampleRate);
 	}
 	//insertV(&(g_ctx->channels[channelNumber].voices), v);

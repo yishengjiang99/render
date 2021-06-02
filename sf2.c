@@ -53,18 +53,168 @@ int readsf(FILE *fd)
 	readSection(imod);
 	readSection(igen);
 	readSection(shdr);
+
 	return 1;
 }
 
-phdr findPreset(char *name)
+PresetZones findPresetByName(const char *name)
 {
 	for (unsigned short i = 0; i < nphdrs - 1; i++)
 	{
 		if (strstr(phdrs[i].name, name))
 		{
-			return phdrs[i];
+			return *(presetZones + i);
 		}
 	}
-	return phdrs[0];
+
+	return presetZones[0];
+}
+
+void sanitizedInsert(short *attrs, int i, pgen_t *g)
+{
+	switch (i % 60)
+	{
+	case StartAddrOfs:
+	case EndAddrOfs:
+	case StartLoopAddrOfs:
+	case EndLoopAddrOfs:
+	case StartAddrCoarseOfs:
+	case EndAddrCoarseOfs:
+	case StartLoopAddrCoarseOfs:
+	case EndLoopAddrCoarseOfs:
+	case OverrideRootKey:
+		attrs[i] = g->val.uAmount & 0x7f;
+		break;
+	default:
+		attrs[i] = g->val.shAmount;
+		break;
+	}
+}
+int findPresetZonesCount(int i)
+{
+
+	int nregions = 0;
+	int instID = -1, lastSampId = -1;
+	phdr phr = phdrs[i];
+	for (int j = phr.pbagNdx; j < phdrs[i + 1].pbagNdx; j++)
+	{
+		pbag *pg = pbags + j;
+		pgen_t *lastg = pgens + pg[j + 1].pgen_id;
+		int pgenId = pg->pgen_id;
+		instID = -1;
+		int lastPgenId = j < npbags - 1 ? pbags[j + 1].pgen_id : npgens - 1;
+		for (int k = pgenId; k < lastPgenId; k++)
+		{
+			pgen *g = pgens + k;
+			if (g->genid == Instrument)
+			{
+				instID = g->val.shAmount;
+				lastSampId = -1;
+				inst *ihead = insts + instID;
+				int ibgId = ihead->ibagNdx;
+				int lastibg = (ihead + 1)->ibagNdx;
+				for (int ibg = ibgId; ibg < lastibg; ibg++)
+				{
+					lastSampId = -1;
+					ibag *ibgg = ibags + ibg;
+					pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id : igens + nigens - 1;
+					for (pgen_t *g = igens + ibgg->igen_id; g->genid != 60 && g != lastig; g++)
+					{
+						if (g->genid == SampleId)
+						{
+							nregions++;
+						}
+					}
+				}
+			}
+		}
+	}
+	return nregions;
+}
+PresetZones findPresetZones(int i, int nregions)
+{
+	enum
+	{
+		default_pbg_cache_index = 0,
+		pbg_attr_cache_index = 60,
+		default_ibagcache_idex = 120,
+		ibg_attr_cache_index = 180
+	};
+	zone_t *zones = (zone_t *)malloc(nregions * sizeof(zone_t));
+	int found = 0;
+	short attrs[240] = {0};
+	int instID = -1;
+	int lastbag = phdrs[i].pbagNdx;
+	bzero(&attrs[default_pbg_cache_index], 240 * sizeof(short));
+
+	for (int j = phdrs[i].pbagNdx; j < phdrs[i + 1].pbagNdx; j++)
+	{
+		int attr_inex = j == phdrs[i].pbagNdx ? default_pbg_cache_index : pbg_attr_cache_index;
+		bzero(&attrs[pbg_attr_cache_index], 180 * sizeof(short));
+
+		pbag *pg = pbags + j;
+		pgen_t *lastg = pgens + pg[j + 1].pgen_id;
+		int pgenId = pg->pgen_id;
+		int lastPgenId = j < npbags - 1 ? pbags[j + 1].pgen_id : npgens - 1;
+
+		for (int k = pgenId; k < lastPgenId; k++)
+		{
+			pgen *g = pgens + k;
+			if (g->genid != Instrument)
+			{
+				sanitizedInsert(attrs, g->genid + attr_inex, g);
+			}
+			else
+			{
+				instID = g->val.shAmount;
+				sanitizedInsert(attrs, g->genid + attr_inex, g);
+				bzero(&attrs[default_ibagcache_idex], 120 * sizeof(short));
+				int lastSampId = -1;
+				inst *ihead = insts + instID;
+				int ibgId = ihead->ibagNdx;
+				int lastibg = (ihead + 1)->ibagNdx;
+				for (int ibg = ibgId; ibg < lastibg; ibg++)
+				{
+					bzero((&attrs[0] + ibg_attr_cache_index), 60 * sizeof(short));
+					attr_inex = ibg == ibgId ? default_ibagcache_idex : ibg_attr_cache_index;
+
+					lastSampId = -1;
+					ibag *ibgg = ibags + ibg;
+					pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id : igens + nigens - 1;
+					for (pgen_t *g = igens + ibgg->igen_id; g->genid != 60 && g != lastig; g++)
+					{
+						sanitizedInsert(attrs, attr_inex + g->genid, g);
+						if (g->genid == SampleId)
+						{
+							short zoneattr[60] = defattrs;
+							lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
+							for (int i = 0; i < 60; i++)
+							{
+								if (attrs[ibg_attr_cache_index + i])
+								{
+									zoneattr[i] = attrs[ibg_attr_cache_index + i];
+								}
+								else if (attrs[default_ibagcache_idex + i])
+								{
+									zoneattr[i] = attrs[default_ibagcache_idex + i];
+								}
+								if (attrs[pbg_attr_cache_index + i])
+								{
+									zoneattr[i] += attrs[pbg_attr_cache_index + i];
+								}
+								else if (attrs[default_pbg_cache_index + i])
+								{
+									zoneattr[i] += attrs[pbg_attr_cache_index + i];
+								}
+							}
+							memcpy(zones + found, &zoneattr[0], 60 * sizeof(short));
+							found++;
+						}
+					}
+				}
+			}
+		}
+	}
+	return (PresetZones){phdrs[i], nregions, zones};
 }
 #endif

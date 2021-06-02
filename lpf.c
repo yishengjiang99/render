@@ -15,11 +15,11 @@ typedef struct
 	float output;
 	float m1;
 	float X;
-} lpf;
+} lpf_t;
 
 #define pi 3.1415f
 
-lpf *newLpf(lpf *l, float cutoff_freq, float sample_rate)
+lpf_t *newLpf(lpf_t *l, float cutoff_freq, float sample_rate)
 {
 	l->sample_rate = sample_rate;
 	l->cutoff_freq = cutoff_freq;
@@ -28,7 +28,7 @@ lpf *newLpf(lpf *l, float cutoff_freq, float sample_rate)
 	return l;
 }
 
-float process_input(lpf *l, float input)
+float process_input(lpf_t *l, float input)
 {
 	l->input = input;
 	l->output = l->input * (1.0f - l->X) + l->m1 * l->X;

@@ -2,24 +2,39 @@
 
 extern "C"
 {
-
-#include "../sf2.c"
-#include "../presetexp.c"
+#include "../runtime.c"
+#include "../tictok.c"
 }
 class CtxTest : public ::testing::Test
 {
 protected:
 	void SetUp() override
 	{
-		readsf(fopen("../sm.sf2", "rb"));
-		presets = IndexPresets();
-		l1 = presets->link;
+		readsf(fopen("../GeneralUserGS.sf2", "rb"));
+		init_ctx();
 	}
-	preset *presets, *l1;
 };
 // Demonstrate some basic assertions.
 TEST_F(CtxTest, BasicAssertions)
 {
 	EXPECT_NE(&phdrs[0], nullptr);
-	EXPECT_EQ(presets->hdr.pid, 0);
+	EXPECT_NE(&pbags[0], nullptr);
+	EXPECT_NO_FATAL_FAILURE(findPresetZonesCount(0));
+	EXPECT_NO_FATAL_FAILURE(findPresetZones(0, 2));
+
+	EXPECT_EQ(pbags[0].pgen_id, 0);
+}
+// Demonstrate some basic assertions.
+
+TEST_F(CtxTest, basicbemchj)
+{
+
+	for (int i = 0; i < nphdrs; i++)
+	{
+		TIC()
+
+		ASSERT_NO_FATAL_FAILURE(findPresetZones(i, findPresetZonesCount(i)));
+		TOK()
+		ASSERT_LT(tiktoktime(), 10e7);
+	}
 }

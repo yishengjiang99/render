@@ -4,3 +4,9 @@ song.pcm
 wv.png
 CMakeCache.txt
 CMakeFiles
+*pcm
+*dSYM
+.o
+file.sf2
+index.html
+build

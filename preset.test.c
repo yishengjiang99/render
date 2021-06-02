@@ -1,11 +1,11 @@
 #include "sf2.c"
 #include <assert.h>
-#include "presetexp.c"
+#include "runtime.c"
 int main()
 {
 	readsf(fopen("file.sf2", "rb"));
-	preset *p = IndexPresets();
-	preset *h = p;
+	phdr pdr = findPreset("Trumpet");
+	printf("%d", pdr.pid);
 
-	printz(h); //0, 0, 55, 33h); ///p, 0);
+	//printz(h); //0, 0, 55, 33h); ///p, 0);
 }
