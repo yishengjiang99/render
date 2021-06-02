@@ -22,7 +22,7 @@ void *cb(void *args)
 	{
 		render(ctx);
 
-		usleep(1898); // * MSEC);
+		usleep(2500); // * MSEC);
 	}
 
 	return NULL;

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <math.h>
+#include <stdlib.h>
 #define NUM_OSCILLATORS 16
 #define SAMPLE_BLOCKSIZE 128
 
@@ -8,9 +9,9 @@
 #define WAVETABLE_SIZE 4096
 #define LOG2_WAVETABLE_SIZE 12
 
-#define PI 3.1415926539f
+#define PIF 3.1415926539f
 #define BIT32_NORMALIZATION 4294967296.0f
-#define SAMPLE_RATE 48000
+#define SAMPLE_RATE 96000.0f
 //
 //  This typedef in wavetable_oscillator.h
 //
@@ -116,6 +117,8 @@ void wavetable_1dimensional_oscillator(wavetable_oscillator_data *this_oscillato
 		_wave000 += (_wave001 - _wave000) * fadeDim1;
 
 		fadeDim1 += fadeDim1Increment;
+		if (fadeDim1 < 0.0f || fadeDim1 > 1.0f)
+			fadeDim1Increment = 0;
 
 		phase += phaseIncrement;
 		phaseIncrement += frequencyIncrement;
@@ -268,6 +271,14 @@ void wavetable_3dimensional_oscillator(wavetable_oscillator_data *this_oscillato
 static wavetable_oscillator_data oscillator[NUM_OSCILLATORS];
 static float sinewave[WAVETABLE_SIZE], squarewave[WAVETABLE_SIZE];
 static float output_samples[NUM_OSCILLATORS][SAMPLE_BLOCKSIZE];
+static float silence[WAVETABLE_SIZE];
+static float silence2[WAVETABLE_SIZE]; // = {0.0f};
+static float sample_tables[WAVETABLE_SIZE * 100];
+float *sampleRef = &sample_tables[0];
+void *sampleTableRef(int tableNumber)
+{
+	return &(sample_tables[WAVETABLE_SIZE * tableNumber]);
+}
 
 wavetable_oscillator_data *init_oscillators()
 {
@@ -279,13 +290,16 @@ wavetable_oscillator_data *init_oscillators()
 
 	for (int n = 0; n < WAVETABLE_SIZE; n++)
 	{
-		sinewave[n] = sinf(5.0 * PI * ((float)n) / (float)WAVETABLE_SIZE);
+		sinewave[n] = sinf(2.0 * PIF * ((float)n) / (float)WAVETABLE_SIZE);
+		silence[n] = 0.0f;
 	}
 
-	for (int n = 0; n < WAVETABLE_SIZE / 2; n++)
+	for (int n = 0; n < WAVETABLE_SIZE / 4; n++)
 	{
 		squarewave[n] = 0.5;
-		squarewave[n + WAVETABLE_SIZE / 2] = -0.5;
+		squarewave[n + WAVETABLE_SIZE / 4] = -0.5;
+		squarewave[n + 2 * WAVETABLE_SIZE / 4] = 0.5;
+		squarewave[n + 3 * WAVETABLE_SIZE / 4] = -0.5;
 	}
 
 	//
@@ -310,8 +324,10 @@ wavetable_oscillator_data *init_oscillators()
 
 		oscillator[i].wave000 = &(sinewave[0]);
 		oscillator[i].wave001 = &(squarewave[0]);
+		oscillator[i].wave010 = &(sinewave[0]);
+		oscillator[i].wave011 = &(sinewave[0]);
 	}
-	return &oscillator[0];
+	return oscillator;
 }
 
 int wavetable_struct_size()

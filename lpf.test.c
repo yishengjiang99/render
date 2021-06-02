@@ -9,9 +9,9 @@ int main()
 {
 	readsf(fopen("file.sf2", "rb"));
 	init_ctx();
-	printf("%s", findPreset("Flute").name);
-	assert(findPreset("Flute").pid != 0);
-	g_ctx->channels[0].program_number = findPreset("Flute").pid;
+	printf("%s", findPresetByName("Flute").hdr.name);
+	assert(findPresetByName("Flute").hdr.pid != 0);
+	g_ctx->channels[0].program_number = findPresetByName("Flute").hdr.pid;
 	g_ctx->outputFD = popen("ffplay -t 1 -ac 1 -ar 48k -f f32le -i pipe:0", "w");
 
 	for (int midi = 55; midi < 77; midi++)

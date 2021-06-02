@@ -1,1 +1,1 @@
-cmake --build build
+rm -f *.o && make && ./fft-samples.o

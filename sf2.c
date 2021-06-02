@@ -3,11 +3,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <mm_malloc.h>
 #include <string.h>
 #include "sf2.h"
 
-int readsf(FILE *fd)
+void readsf(FILE *fd)
 {
 	sheader_t *header = (sheader_t *)malloc(sizeof(sheader_t));
 	header2_t *h2 = (header2_t *)malloc(sizeof(header2_t));
@@ -53,8 +52,10 @@ int readsf(FILE *fd)
 	readSection(imod);
 	readSection(igen);
 	readSection(shdr);
-
-	return 1;
+	// for (int i = 0; i < nphdrs; i++)
+	// {
+	// 	findPresetZones(i, findPresetZonesCount(i));
+	// }
 }
 
 PresetZones findPresetByName(const char *name)
@@ -144,7 +145,7 @@ PresetZones findPresetZones(int i, int nregions)
 	int found = 0;
 	short attrs[240] = {0};
 	int instID = -1;
-	int lastbag = phdrs[i].pbagNdx;
+	int lastbag = phdrs[i + 1].pbagNdx;
 	bzero(&attrs[default_pbg_cache_index], 240 * sizeof(short));
 
 	for (int j = phdrs[i].pbagNdx; j < phdrs[i + 1].pbagNdx; j++)

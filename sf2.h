@@ -136,6 +136,7 @@ typedef struct
 	int npresets;
 	zone_t *zones;
 } PresetZones;
+void readsf(FILE *f);
 PresetZones findPresetZones(int i, int nregions);
 PresetZones findPresetByName(const char *name);
 int findPresetZonesCount(int i);
@@ -222,9 +223,13 @@ enum grntypes
 #define fivezeros 0, 0, 0, 0, 0
 #define defenvel -12000, -12000, -12000, -12000, 0, -12000
 
-#define defattrs                                                                   \
-	{                                                                                \
-			fivezeros, 0, 0, 0, 13500, fivezeros, fivezeros, 0, 0, -12000, 0, -12000, 0, \
-			defenvel, 0, 0, defenvel, fivezeros, 0, 0,                                   \
-			-1, -1, fivezeros, 0, 0, 100, 0, -1};
+#define defattrs                          \
+	{                                       \
+			fivezeros, 0, 0, 0, 13500,          \
+			fivezeros, fivezeros, 0, 0, -12000, \
+			0, -12000, 0,                       \
+			defenvel, 0, 0, defenvel,           \
+			fivezeros, 0, 0,                    \
+			-1, -1, fivezeros, 0, 0,            \
+			100, 0, -1};
 #endif

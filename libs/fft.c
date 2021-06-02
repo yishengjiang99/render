@@ -23,20 +23,8 @@
 
     Written ca. 1985 in THINK C by Robert Bristow-Johnson. 
 */
-#define HALFPI 1.570796326794897
-#define PI 3.141592653589793
-#define TWOPI 6.283185307179586
-
-// #include "complex.h"
-
-typedef struct
-{
-	double real;
-	double imag;
-} complex;
-
-#define Re(z) (z).real
-#define Im(z) (z).imag
+#include <math.h>
+#include "fft.h"
 
 void FFT(complex *x, int n, double *stbl)
 {
@@ -197,19 +185,19 @@ void iFFT(complex *X, int n, double *stbl)
 	}
 }
 
-// void sin_table(double *stbl, int n)
-// {
-// 	register long size, i;
-// 	double theta;
+void sin_table(double *stbl, int n)
+{
+	register long size, i;
+	double theta;
 
-// 	size = 1L << (n - 2);
-// 	theta = HALFPI / size;
+	size = 1L << (n - 2);
+	theta = HALFPI / size;
 
-// 	for (i = 0; i < size; i++)
-// 	{
-// 		stbl[i] = sin(theta * i);
-// 	}
-// }
+	for (i = 0; i < size; i++)
+	{
+		stbl[i] = sin(theta * i);
+	}
+}
 
 void bit_reverse(register complex *x, int n)
 {
