@@ -1,5 +1,6 @@
 #include "runtime.c"
 #include <assert.h>
+#include "call_ffp.c"
 void cb(ctx_t *ctx)
 {
 	for (int i = 0; i < 128; i++)
@@ -36,7 +37,7 @@ int main()
 		if (phdrs[i].bankId != 0)
 			continue;
 		g_ctx->channels[i].program_number = phdrs[i].pid;
-		for (int m = 32; m < 78; m++)
+		for (int m = 57; m < 78; m++)
 		{
 			printf("\n***%d %d\n", m, i);
 			noteOn(i, m, 55, 0);

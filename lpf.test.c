@@ -4,30 +4,45 @@
 
 #include "lpf.c"
 #include "call_ffp.c"
+#include "runtime.c"
 int main()
 {
-	FILE *before = fopen("sawtooth.pcm", "rb");
-	lpf *filter = malloc(sizeof(lpf));
-	FILE *after = fopen("after.pcm", "wb");
+	readsf(fopen("file.sf2", "rb"));
+	init_ctx();
+	printf("%s", findPreset("Flute").name);
+	assert(findPreset("Flute").pid != 0);
+	g_ctx->channels[0].program_number = findPreset("Flute").pid;
+	g_ctx->outputFD = popen("ffplay -t 1 -ac 1 -ar 48k -f f32le -i pipe:0", "w");
 
-	float input;
-	newLpf(filter, 331.0f, 48000.0f);
-
-	fputc(process_input(filter, (before)), after);
-
-	float *buf = (float *)malloc(sizeof(float) * 48000 * 1);
-	fread(buf, 4, 48000 * 1, stf);
-	//	fwrite(buf, 4, 48000, playf);
-	float *after = (float *)malloc(sizeof(float) * 48000);
-
-	for (int i = 0; i < 48000; i++)
+	for (int midi = 55; midi < 77; midi++)
 	{
-		filter->input = *(buf + i);
-		process_input(filter, fgetc(stf));
-		*(after + i) = filter->output;
+		int vel = 99;
+		noteOn(0, midi, vel, 0);
+		if (g_ctx->channels[0].voices->lpf)
+			printf("fc %f", g_ctx->channels[0].voices->lpf->cutoff_freq);
+		render_fordr(g_ctx, .5, NULL);
+		noteOff(0, midi);
 	}
-	fwrite(after, 4, 48000, playf);
-	system("ffplay -t 1 -ac 1 -ar 48k -f f32le -i after.pcm");
-	system("ffmpeg -ac 1 -f f32le -i sawtooth.pcm -filter:a lowpass=f=330 -f f32le -|ffplay -ac 1 -f f32le -i pipe:0");
+
+	// FILE *sawtooth = fopen("sawtooth.pcm", "rb");
+	// float *buf = (float *)malloc(sizeof(float) * 48000 * 1);
+	// fread(buf, 4, 48000 * 1, sawtooth);
+	// float *afterbb = (float *)malloc(sizeof(float) * 48000);
+
+	// lpf *filter = malloc(sizeof(lpf));
+
+	// float input;
+	// newLpf(filter, 331.0f, 48000.0f);
+	// for (int i = 0; i < 48000; i++)
+	// {
+	// 	filter->input = *(buf + i);
+	// 	*(afterbb + i) = process_input(filter, *(buf + i));
+	// }
+	// FILE *l = popen("ffplay -t 1 -ac 1 -ar 48k -f f32le -i pipe:0", "w");
+
+	// fwrite(afterbb, 4, 48000, l);
+	// pclose(l);
+
+	//	system("ffmpeg -ac 1 -f f32le -i sawtooth.pcm -filter:a lowpass=f=330 -f f32le -|ffplay -ac 1 -f f32le -i pipe:0");
 	//lpf=frequency:220");
 }

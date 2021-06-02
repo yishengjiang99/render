@@ -1,9 +1,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "sf2.c"
-#include "call_ffp.c"
-#include "minisdl_audio.h"
 #include "luts.c"
+#include "lpf.c"
 #define output_sampleRate 48000
 #define dspbuffersize 32
 typedef struct
@@ -27,6 +26,7 @@ typedef struct _voice
 	int chid;
 	float panLeft, panRight;
 	short attenuate;
+	lpf *lpf;
 	struct _voice *next;
 } voice;
 
@@ -213,7 +213,7 @@ void get_sf(int channelNumer, int key, int vel)
 
 							if (g->genid == SampleId)
 							{
-								short zoneattr[60] = {0};
+								short zoneattr[60] = defattrs;
 								lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
 								for (int i = 0; i < 60; i++)
 								{
@@ -314,6 +314,10 @@ void loop(voice *v, float *output)
 		float o1 = *(output + 2 * i + 1);
 		float o2 = *(output + 2 * i);
 		float gain = f1 + (f2 - f1) * v->frac;
+		if (v->lpf != NULL)
+		{
+			gain = process_input(v->lpf, gain);
+		}
 
 		float mono = gain * centdblut(envShift(v->ampvol));
 		*(output + 2 * i) += mono * v->panRight;
@@ -369,6 +373,11 @@ void applyZone(zone_t *z, int midi, int vel, int channelNumber)
 	v->velocity = vel;
 	v->panLeft = panLeftLUT(z->Pan);
 	v->panRight = 1 - v->panLeft;
+	if (z->FilterFc < 13000)
+	{
+		v->lpf = malloc(sizeof(lpf));
+		newLpf(v->lpf, centtone2freq(z->FilterFc), g_ctx->sampleRate);
+	}
 	//insertV(&(g_ctx->channels[channelNumber].voices), v);
 }
 
@@ -389,10 +398,7 @@ ctx_t *init_ctx()
 	g_ctx->outputbuffer = (float *)malloc(sizeof(float) * g_ctx->samples_per_frame * 2);
 	return g_ctx;
 }
-void loopctx(voice *v, ctx_t *ctx, int flag)
-{
-	loop(v, ctx->outputbuffer);
-}
+
 void noteOn(int channelNumber, int midi, int vel, unsigned long when)
 {
 	get_sf(channelNumber, midi, vel);
@@ -416,18 +422,17 @@ void render(ctx_t *ctx)
 	int vs = 0;
 	for (int i = 0; i < 16; i++)
 	{
-		voice **tr = &g_ctx->channels[i].voices;
-		if (trval)
+		channel_t ch = g_ctx->channels[i];
+		voice **v = &ch.voices;
+
+		if (*v != NULL)
 		{
-			if (trval->ampvol->release_steps <= 128)
+			loop(*v, g_ctx->outputbuffer);
+			if ((*v)->ampvol->db_attenuate > 960 || (*v)->ampvol->release_steps <= 0)
 			{
-				trval = trval->next;
+				ch.voices = (*v)->next;
 			}
-			else
-			{
-				loop(trval, g_ctx->outputbuffer);
-			}
-			tr = trshift;
+			v = &(*v)->next;
 		}
 	}
 

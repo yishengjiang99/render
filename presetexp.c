@@ -214,13 +214,13 @@ preset *IndexPresets()
 	}
 	return psets;
 }
-#define printz(trval)                               \
-	printf("\n%s %d %d, \n\rsamp %d inst %d\n",       \
-				 trval->hdr.name, trval->hdr.pid,           \
-				 trval->hdr.bankId, trval->attrs[SampleId], \
-				 trval->attrs[Instrument]);                 \
-	// printf("%d %d %d %d\n", trval->key.lo,               \
-	// 			 trval->key.hi, trval->vel.lo, trval->vel.hi); \
+#define printz(trval)                                  \
+	printf("\n%s %d %d, \n\rsamp %d inst %d\n",          \
+				 trval->hdr.name, trval->hdr.pid,              \
+				 trval->hdr.bankId, trval->attrs[SampleId],    \
+				 trval->attrs[Instrument]);                    \
+	printf("%d %d %d %d\n", trval->key.lo,               \
+				 trval->key.hi, trval->vel.lo, trval->vel.hi); \
 	for (int i = 0; i < 60; i++)                         \
 		printf("%d,", trval->attrs[i]);
 

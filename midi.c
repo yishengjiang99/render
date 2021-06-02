@@ -6,9 +6,10 @@
 #include "runtime.c"
 #include <unistd.h>
 #include <pthread.h>
+#include "call_ffp.c"
 
 #define BILLION 1000000000L
-#define MSEC 1000L
+#define MSEC 1000
 
 void *cb(void *args)
 {
@@ -21,14 +22,14 @@ void *cb(void *args)
 	{
 		render(ctx);
 
-		usleep(2.5 * MSEC);
+		usleep(1898); // * MSEC);
 	}
 
 	return NULL;
 }
 int main(int argc, char **argv)
 {
-	tml_message *m = tml_load_filename("song.mid");
+	tml_message *m = tml_load_filename(argc > 1 ? argv[1] : "song.mid");
 	channel_t *ch;
 	init_ctx();
 	readsf(fopen("file.sf2", "rb"));

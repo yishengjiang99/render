@@ -55,4 +55,16 @@ int readsf(FILE *fd)
 	readSection(shdr);
 	return 1;
 }
+
+phdr findPreset(char *name)
+{
+	for (unsigned short i = 0; i < nphdrs - 1; i++)
+	{
+		if (strstr(phdrs[i].name, name))
+		{
+			return phdrs[i];
+		}
+	}
+	return phdrs[0];
+}
 #endif
