@@ -1,59 +1,10 @@
 #include <stdlib.h>
+#include <strings.h>
 #include <assert.h>
-#include "sf2.h"
 
+#include "runtime.h"
 #include "luts.c"
-#include "lpf.c"
-#define output_sampleRate 48000
-#define dspbuffersize 128
-typedef struct
-{
-	uint32_t att_steps, decay_steps, release_steps, delay_steps, hold_steps;
-	unsigned short sustain;
-	float db_attenuate;
-	float att_rate, decay_rate, release_rate;
-} adsr_t;
-typedef struct _voice
-{
-	zone_t *z;
-	shdrcast *sample;
-	unsigned int start, end, startloop, endloop;
-	uint32_t pos;
-	float frac;
-	float ratio;
-	adsr_t *ampvol, *moddvol;
-	int midi;
-	int velocity;
-	int chid;
-	float panLeft, panRight;
-	short attenuate;
-	lpf_t *lpf;
-	struct _voice *next;
-} voice;
 
-typedef struct
-{
-	int program_number;
-	unsigned short midi_volume;
-	unsigned short midi_pan;
-	voice *voices;
-} channel_t;
-
-typedef struct _ctx
-{
-	int sampleRate;
-	uint16_t currentFrame;
-	int samples_per_frame;
-	int refcnt;
-	float mastVol;
-	channel_t channels[16];
-	float *outputbuffer;
-	FILE *outputFD;
-} ctx_t;
-
-void applyZone(zone_t *z, int midi, int vel, int cid);
-
-static ctx_t *g_ctx;
 #ifndef lut
 #define lut
 static inline float p2over1200(float x)
@@ -128,16 +79,45 @@ int get_sf(int channelNumer, int key, int vel)
 	int found = 0;
 	for (int i = 0; i < ch.pzset.npresets; i++, zones++)
 	{
-		if (zones->VelRange.lo > vel || zones->VelRange.hi < vel)
+		if (vel>-1 && zones->VelRange.lo > vel || zones->VelRange.hi < vel)
 			continue;
-		if (zones->KeyRange.lo > key || zones->KeyRange.hi < key)
+		if (key>-1 && zones->KeyRange.lo > key || zones->KeyRange.hi < key)
 			continue;
-		applyZone(zones, key, vel, channelNumer);
+		newVoice(zones, key, vel, channelNumer);
 		found++;
 	}
+	if(!found && vel>-1) return get_sf(channelNumer,key,-1);
+		if(!found && key >-1) return get_sf(channelNumer,-1,vel);
+
 	return found;
 }
 
+#ifndef LPF_C
+#define LPF_C
+#include <math.h>
+
+lpf_t *newLpf(lpf_t *l, float cutoff_freq, float sample_rate);
+float process_input(lpf_t *l, float input);
+#define pi 3.1415f
+
+lpf_t *newLpf(lpf_t *l, float cutoff_freq, float sample_rate)
+{
+	l->sample_rate = sample_rate;
+	l->cutoff_freq = cutoff_freq;
+	l->m1 = 0;
+	l->X = expf(-2.0f * pi * ((float)l->cutoff_freq /(float) l->sample_rate));
+	return l;
+}
+
+float process_input(lpf_t *l, float input)
+{
+	l->input = input;
+	l->output = l->input * (1.0f - l->X) + l->m1 * l->X;
+	l->m1 = l->input * (1.0f - l->X) + l->m1 * l->X;
+	return l->m1;
+}
+
+#endif
 adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay, short sustain, int sampleRate)
 {
 	adsr_t *env = (adsr_t *)malloc(sizeof(adsr_t));
@@ -220,10 +200,13 @@ void loop(voice *v, float *output)
 		float o1 = *(output + 2 * i + 1);
 		float o2 = *(output + 2 * i);
 		float gain = hermite4(v->frac, fm1, f1, f2, f3);
+		printf("%f\n",gain);
 		//f1 + (f2 - f1) * v->frac;
 		if (v->lpf != NULL)
 		{
 			gain = process_input(v->lpf, gain);
+					printf("aass%f\n",gain);
+
 		}
 
 		float mono = gain * centdblut(envShift(v->ampvol)); //+ v->attenuate);
@@ -261,12 +244,15 @@ float calcratio(zone_t *z, shdrcast *sh, int midi)
 	float octaveDivv = (float)midi * 100 - sampleTone;
 	return p2over1200(octaveDivv) * (float)sh->sampleRate / g_ctx->sampleRate;
 }
-voice *newVoice(zone_t *z, int midi, int vel)
+voice *newVoice(zone_t *z, int midi, int vel, int cid)
 {
 	voice *v = (voice *)malloc(sizeof(voice));
-	v->next = NULL;
 	shdrcast *sh = (shdrcast *)(shdrs + z->SampleId);
 	v->z = z;
+	v->chid = cid;
+	v->next = g_ctx->channels[cid].voices;
+
+	g_ctx->channels[cid].voices = v;
 	v->sample = sh;
 	v->start = sh->start + ((unsigned short)(z->StartAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->StartAddrOfs & 0x7f);
 	v->end = sh->end + ((unsigned short)(z->EndAddrCoarseOfs & 0x7f) << 15) + (unsigned short)(z->EndAddrOfs & 0x7f);
@@ -289,6 +275,7 @@ voice *newVoice(zone_t *z, int midi, int vel)
 		newLpf(v->lpf, centtone2freq(z->FilterFc), g_ctx->sampleRate);
 	}
 	g_ctx->refcnt++;
+	return v;
 	//insertV(&(g_ctx->channels[channelNumber].voices), v);
 }
 
@@ -335,10 +322,7 @@ void noteOff(int i, int midi)
 		v = v->next;
 	}
 }
-void rgo()
-{
-	render(g_ctx);
-}
+
 void render(ctx_t *ctx)
 {
 	bzero(ctx->outputbuffer, sizeof(float) * ctx->samples_per_frame * 2);
@@ -348,7 +332,7 @@ void render(ctx_t *ctx)
 		channel_t ch = g_ctx->channels[i];
 		voice *v = ch.voices;
 		voice *prev = ch.voices;
-		if (v != NULL)
+		while (v != NULL)
 		{
 			loop(v, g_ctx->outputbuffer);
 
