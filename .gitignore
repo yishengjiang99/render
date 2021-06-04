@@ -10,3 +10,5 @@ CMakeFiles
 file.sf2
 index.html
 build
+node_modules
+midifiles

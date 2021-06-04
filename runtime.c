@@ -1,11 +1,59 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "sf2.h"
-#include "runtime.h"
 
 #include "luts.c"
 #include "lpf.c"
+#define output_sampleRate 48000
+#define dspbuffersize 128
+typedef struct
+{
+	uint32_t att_steps, decay_steps, release_steps, delay_steps, hold_steps;
+	unsigned short sustain;
+	float db_attenuate;
+	float att_rate, decay_rate, release_rate;
+} adsr_t;
+typedef struct _voice
+{
+	zone_t *z;
+	shdrcast *sample;
+	unsigned int start, end, startloop, endloop;
+	uint32_t pos;
+	float frac;
+	float ratio;
+	adsr_t *ampvol, *moddvol;
+	int midi;
+	int velocity;
+	int chid;
+	float panLeft, panRight;
+	short attenuate;
+	lpf_t *lpf;
+	struct _voice *next;
+} voice;
 
+typedef struct
+{
+	int program_number;
+	unsigned short midi_volume;
+	unsigned short midi_pan;
+	voice *voices;
+} channel_t;
+
+typedef struct _ctx
+{
+	int sampleRate;
+	uint16_t currentFrame;
+	int samples_per_frame;
+	int refcnt;
+	float mastVol;
+	channel_t channels[16];
+	float *outputbuffer;
+	FILE *outputFD;
+} ctx_t;
+
+void applyZone(zone_t *z, int midi, int vel, int cid);
+
+static ctx_t *g_ctx;
 #ifndef lut
 #define lut
 static inline float p2over1200(float x)
@@ -208,7 +256,7 @@ void insertV(voice **start, voice *nv)
 }
 float calcratio(zone_t *z, shdrcast *sh, int midi)
 {
-	short rt = z->OverrideRootKey > 0 ? z->OverrideRootKey : sh->originalPitch;
+	short rt = z->OverrideRootKey > -1 ? z->OverrideRootKey : sh->originalPitch;
 	float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
 	float octaveDivv = (float)midi * 100 - sampleTone;
 	return p2over1200(octaveDivv) * (float)sh->sampleRate / g_ctx->sampleRate;
@@ -240,17 +288,7 @@ voice *newVoice(zone_t *z, int midi, int vel)
 		v->lpf = (lpf_t *)malloc(sizeof(lpf_t));
 		newLpf(v->lpf, centtone2freq(z->FilterFc), g_ctx->sampleRate);
 	}
-	return v;
-}
-void applyZone(zone_t *z, int midi, int vel, int channelNumber)
-{
-
-	voice *v = newVoice(z, midi, vel);
-	v->next = g_ctx->channels[channelNumber].voices;
-	g_ctx->channels[channelNumber].voices = v;
 	g_ctx->refcnt++;
-	v->chid = channelNumber;
-
 	//insertV(&(g_ctx->channels[channelNumber].voices), v);
 }
 
@@ -310,30 +348,15 @@ void render(ctx_t *ctx)
 		channel_t ch = g_ctx->channels[i];
 		voice *v = ch.voices;
 		voice *prev = ch.voices;
-		int ct = 0;
 		if (v != NULL)
 		{
-			if (v->ampvol->release_steps <= 0)
+			loop(v, g_ctx->outputbuffer);
+
+			if (v->ampvol->db_attenuate > 960 || v->ampvol->release_steps <= 0)
 			{
 				prev->next = v->next;
-				g_ctx->refcnt--;
-				v = v->next;
 			}
-			else
-			{
-				loop(v, g_ctx->outputbuffer);
-				if (ct++ > 4)
-				{
-					voice *temp = v->next;
-					v->next = NULL;
-					if (temp)
-						free(temp);
-					break;
-				}
-
-				prev = v;
-				v = v->next;
-			}
+			v = v->next;
 		}
 	}
 

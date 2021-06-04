@@ -101,7 +101,9 @@
 		"runtime.h": "c",
 		"tictok.c": "cpp",
 		"runtime.c": "cpp",
-		"gtest-typed-test.h": "c"
+		"gtest-typed-test.h": "c",
+		"luts.c": "cpp",
+		"lpf.c": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "Enabled"
 }

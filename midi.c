@@ -52,9 +52,7 @@ void *cb(void *args)
 		TIC();
 		render(ctx);
 
-		TOK();
-
-		usleep(interval - tiktoktime() / 3000); // * MSEC);
+		usleep(2111); // * MSEC);
 	}
 
 	return NULL;

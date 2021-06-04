@@ -24,6 +24,11 @@ TEST_F(CtxTest, BasicAssertions)
 	EXPECT_NO_FATAL_FAILURE(findPresetZonesCount(0));
 	EXPECT_NO_FATAL_FAILURE(findPresetZones(0, 2));
 	EXPECT_EQ(pbags[0].pgen_id, 0);
+	short at[60] = defattrs;
+	zone_t *z = (zone_t *)at;
+	ASSERT_EQ(z->ModEnvDelay, -12000);
+	ASSERT_EQ(z->OverrideRootKey, -1);
+	ASSERT_EQ(z->ModEnvRelease, -12000);
 }
 TEST_F(CtxTest, defaultattrs)
 {
