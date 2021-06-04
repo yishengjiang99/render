@@ -2,21 +2,7 @@
 #define LPF_C
 #include <math.h>
 #include <string.h>
-typedef struct
-{
-	/*
-   X = exp(-2.0 * pi * Fc)
- *     A = 1 - X
- *     B = X
- *     Fc = cutoff freq / sample rate*/
-	float cutoff_freq;
-	int sample_rate;
-	float input;
-	float output;
-	float m1;
-	float X;
-} lpf_t;
-
+#include "lpf.h"
 #define pi 3.1415f
 
 lpf_t *newLpf(lpf_t *l, float cutoff_freq, float sample_rate)

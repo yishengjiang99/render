@@ -1,23 +1,26 @@
 #include <assert.h>
+#include "sf2.c"
 #include "runtime.c"
 #include <stdio.h>
 
 int main()
 {
-	readsf(fopen("file.sf2", "rb"));
+	short attrs[60] = defattrs;
+	zone_t *z = (zone_t *)attrs;
+	printf("%d,%d", z->VelRange.lo, z->VelRange.hi);
+
+	init_ctx();
+	readsf(fopen("GeneralUserGS.sf2", "rb"));
 	ctx_t *ctx = init_ctx();
 	ctx->outputFD = fopen("o.pcm", "w");
 	ctx->channels[0].program_number = 60;
 	ctx->channels[1].program_number = 0;
-	zone_t z;
-	shdrcast sh;
-	z.OverrideRootKey = 70;
-	z.FineTune = 100;
-	sh.sampleRate = 24000.0f;
-	printf("\n %f %f %d\n", calcratio(&z, &sh, 55), powf(2.0f, (55.0f - 71.0f) / 1200.0f), z.OverrideRootKey);
+	setProgram(0, 0);
+	noteOn(0, 77, 99, 0);
 
-	printf("\n  %f %f %d", calcratio(&z, &sh, 56), powf(2.0f, (56.0f - 71.0f) / 1200.0f), z.OverrideRootKey);
+	render_fordr(g_ctx, 1.0, NULL);
 
-	printf("\n  %f %f %d", calcratio(&z, &sh, 33), powf(2.0f, (56.0f - 71.0f) / 1200.0f), z.OverrideRootKey);
+	return 1;
+
 	//assert(calcratio(&z, &sh, 55) == powf(2.0f, (71.0f - 55) / 1200.0f));
 }

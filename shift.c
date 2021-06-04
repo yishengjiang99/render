@@ -1,14 +1,11 @@
-#include "voice.c"
 
-void loop(voice *v, float *output)
+void loop(float *sample, float *output, float *ratio, int offset, float fract)
 {
-	uint32_t loopLength = v->endloop - v->startloop;
-	float attentuate = v->z->Attenuation;
 
 	for (int i = 0; i < 128; i++)
 	{
-		float f1 = *(sdta + v->pos);
-		float f2 = *(sdta + v->pos + 1);
+		float f1 = *(sample + offset);
+		float f2 = *(sample + offset + 1);
 		float o1 = *(output + 2 * i + 1);
 		float o2 = *(output + 2 * i);
 		float gain = f1 + (f2 - f1) * v->frac;

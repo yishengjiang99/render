@@ -17,5 +17,10 @@
   "bugs": {
     "url": "https://github.com/yishengjiang99/render/issues"
   },
-  "homepage": "https://github.com/yishengjiang99/render#readme"
+  "homepage": "https://github.com/yishengjiang99/render#readme",
+  "dependencies": {
+    "@types/express": "^4.17.12",
+    "express": "^4.17.1",
+    "midiread": "^2.0.2"
+  }
 }

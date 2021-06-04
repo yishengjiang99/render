@@ -1,22 +1,16 @@
-typedef struct wav_header
-{
-	// RIFF Header
-	char riff_header[4]; // Contains "RIFF"
-	int wav_size;				 // Size of the wav portion of the file, which follows the first 8 bytes. File size - 8
-	char wave_header[4]; // Contains "WAVE"
-
-	// Format Header
-	char fmt_header[4]; // Contains "fmt " (includes trailing space)
-	int fmt_chunk_size; // Should be 16 for PCM
-	short audio_format; // Should be 1 for PCM. 3 for IEEE Float
-	short num_channels;
-	int sample_rate;
-	int byte_rate;					// Number of bytes per second. sample_rate * num_channels * Bytes Per Sample
-	short sample_alignment; // num_channels * Bytes Per Sample
-	short bit_depth;				// Number of bits per sample
-
-	// Data
-	char data_header[4]; // Contains "data"
-	int data_bytes;			 // Number of bytes in data. Number of samples * num_channels * sample byte size
-											 // uint8_t bytes[]; // Remainder of wave file is bytes
-} wav_header;
+// from wildmidi.c
+uint8_t wav_hdr[] = {
+		0x52, 0x49, 0x46, 0x46, /* "RIFF"  */
+		0x00, 0x00, 0x00, 0x00, /* riffsize: pcm size + 36 (filled when closing.) */
+		0x57, 0x41, 0x56, 0x45, /* "WAVE"  */
+		0x66, 0x6D, 0x74, 0x20, /* "fmt "  */
+		0x10, 0x00, 0x00, 0x00, /* length of this RIFF block: 16  */
+		0x03, 0x00,							/* wave format == 1 (WAVE_FORMAT_PCM)  */
+		0x02, 0x00,							/* channels == 2  */
+		0x00, 0x00, 0x00, 0x00, /* sample rate (filled below)  */
+		0x00, 0x00, 0x00, 0x00, /* bytes_per_sec: rate * channels * format bytes  */
+		0x04, 0x00,							/* block alignment: channels * format bytes == 4  */
+		0x10, 0x00,							/* format bits == 16  */
+		0x64, 0x61, 0x74, 0x61, /* "data"  */
+		0x00, 0x00, 0x00, 0x00	/* datasize: the pcm size (filled when closing.)  */
+};

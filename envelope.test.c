@@ -18,9 +18,24 @@ void calculateEnvelope(int samplePoints)
 		currentLevel += coeff * currentLevel;
 	}
 }
-
+#include <stdint.h>
+#include "call_ffp.c"
+#include "sf2.c"
+#include "runtime.c"
 int main()
 {
-	init(.899, .333, 1.0f);
-	calculateEnvelope(48000);
+	readsf(fopen("GeneralUserGS.sf2", "rb"));
+	short attrs[60] = defattrs;
+	zone_t *z = (zone_t *)attrs;
+	init_ctx();
+	setProgram(9, 0);
+
+	noteOn(9, 44, 12, 0);
+	printf("\n%d,", g_ctx->refcnt);
+
+	// g_ctx->outputFD = ffp(2, 48000);
+	// shdrcast *s = g_ctx->channels[9].voices[0].sample;
+
+	// g_ctx->channels[9].midi_volume = 128;
+	// render_fordr(g_ctx, 10, NULL);
 }

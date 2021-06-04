@@ -34,9 +34,8 @@ int main()
 	g_ctx->channels[0].voices = NULL;
 	for (int i = 0; i < 8; i++)
 	{
-		if (phdrs[i].bankId != 0)
-			continue;
-		g_ctx->channels[i].program_number = phdrs[i].pid;
+
+		setProgram(i, i);
 		for (int m = 57; m < 78; m++)
 		{
 			printf("\n***%d %d\n", m, i);

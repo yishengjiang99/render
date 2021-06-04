@@ -52,12 +52,29 @@ void readsf(FILE *fd)
 	readSection(imod);
 	readSection(igen);
 	readSection(shdr);
-	// for (int i = 0; i < nphdrs; i++)
-	// {
-	// 	findPresetZones(i, findPresetZonesCount(i));
-	// }
-}
+	presetZones = (PresetZones *)malloc(nphdrs * sizeof(PresetZones));
+	for (int i = 0; i < nphdrs; i++)
+	{
 
+		//	printf("%s %d %d\n", phdrs[i].name, phdrs[i].pid, phdrs[i].bankId);
+		*(presetZones + i) = findPresetZones(i, findPresetZonesCount(i));
+	}
+	//findByPid(0, 128);
+}
+PresetZones findByPid(int pid, int bkid)
+{
+	for (unsigned short i = 0; i < nphdrs - 1; i++)
+	{
+		if (phdrs[i].pid == pid && phdrs[i].bankId == bkid)
+		{
+			return presetZones[i];
+		}
+	}
+	if (pid > 0)
+		return findByPid(pid--, bkid);
+	else
+		return presetZones[0];
+}
 PresetZones findPresetByName(const char *name)
 {
 	for (unsigned short i = 0; i < nphdrs - 1; i++)
@@ -134,6 +151,8 @@ int findPresetZonesCount(int i)
 }
 PresetZones findPresetZones(int i, int nregions)
 {
+	short defvals[60] = defattrs;
+
 	enum
 	{
 		default_pbg_cache_index = 0,
@@ -178,7 +197,6 @@ PresetZones findPresetZones(int i, int nregions)
 				{
 					bzero((&attrs[0] + ibg_attr_cache_index), 60 * sizeof(short));
 					attr_inex = ibg == ibgId ? default_ibagcache_idex : ibg_attr_cache_index;
-
 					lastSampId = -1;
 					ibag *ibgg = ibags + ibg;
 					pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id : igens + nigens - 1;
@@ -188,27 +206,29 @@ PresetZones findPresetZones(int i, int nregions)
 						if (g->genid == SampleId)
 						{
 							short zoneattr[60] = defattrs;
+
 							lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
 							for (int i = 0; i < 60; i++)
 							{
-								if (attrs[ibg_attr_cache_index + i])
+								if (attrs[ibg_attr_cache_index + i] != defvals[i])
 								{
 									zoneattr[i] = attrs[ibg_attr_cache_index + i];
 								}
-								else if (attrs[default_ibagcache_idex + i])
+								else if (attrs[default_ibagcache_idex + i] != defvals[i])
 								{
 									zoneattr[i] = attrs[default_ibagcache_idex + i];
 								}
-								if (attrs[pbg_attr_cache_index + i])
+								if (attrs[pbg_attr_cache_index + i] != defvals[i])
 								{
 									zoneattr[i] += attrs[pbg_attr_cache_index + i];
 								}
-								else if (attrs[default_pbg_cache_index + i])
+								else if (attrs[default_pbg_cache_index + i] != defvals[i])
 								{
 									zoneattr[i] += attrs[pbg_attr_cache_index + i];
 								}
 							}
-							memcpy(zones + found, &zoneattr[0], 60 * sizeof(short));
+							memcpy(zones + found, zoneattr, 60 * sizeof(short));
+
 							found++;
 						}
 					}

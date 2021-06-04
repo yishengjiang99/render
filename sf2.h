@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <stdio.h>
 #ifndef SF2_H
 #define SF2_H
 
@@ -105,42 +107,10 @@ typedef struct
 	uint16_t pid, bankId, pbagNdx;
 	char idc[12];
 } phdr;
-typedef struct
-{
-	phdr heaer;
-	pbag *pbgs;
-	ibag *ibags;
-} preseta;
 
-typedef struct
-{
-	char name[20];
-	uint32_t start, end, startloop, endloop, sampleRate;
-	int16_t originalPitch;
-	signed char pitchCorrection;
-	unsigned short wSampleLink;
-	unsigned short sfSampleType;
-} shdrcast;
-
-typedef struct
-{
-	short
-			StartAddrOfs,
-			EndAddrOfs, StartLoopAddrOfs, EndLoopAddrOfs,
-			StartAddrCoarseOfs, ModLFO2Pitch, VibLFO2Pitch, ModEnv2Pitch, FilterFc, FilterQ, ModLFO2FilterFc, ModEnv2FilterFc,
-			EndAddrCoarseOfs, ModLFO2Vol, Unused1, ChorusSend, ReverbSend, Pan, Unused2, Unused3, Unused4, ModLFODelay, ModLFOFreq, VibLFODelay, VibLFOFreq, ModEnvDelay, ModEnvAttack, ModEnvHold, ModEnvDecay, ModEnvSustain, ModEnvRelease, Key2ModEnvHold, Key2ModEnvDecay, VolEnvDelay, VolEnvAttack, VolEnvHold, VolEnvDecay, VolEnvSustain, VolEnvRelease, Key2VolEnvHold, Key2VolEnvDecay, Instrument, Reserved1, KeyRange, VelRange, StartLoopAddrCoarseOfs, Keynum, Velocity, Attenuation, Reserved2, EndLoopAddrCoarseOfs, CoarseTune, FineTune, SampleId, SampleModes, Reserved3, ScaleTune, ExclusiveClass, OverrideRootKey, Dummy;
-} zone_t;
-typedef struct
-{
-	phdr hdr;
-	int npresets;
-	zone_t *zones;
-} PresetZones;
 void readsf(FILE *f);
-PresetZones findPresetZones(int i, int nregions);
-PresetZones findPresetByName(const char *name);
-int findPresetZonesCount(int i);
-static int nphdrs, npbags, npgens, npmods, nshdrs, ninsts, nimods, nigens, nibags, nshrs;
+
+static int nphdrs, npbags, npgens, npmods, nshdrs, ninsts, nimods, nigens, nibags;
 
 static phdr *phdrs;
 static pbag *pbags;
@@ -155,8 +125,42 @@ static short *data;
 static void *info;
 static int nsamples;
 static float *sdta;
-static PresetZones *presetZones;
 
+typedef struct
+{
+	char name[20];
+	uint32_t start, end, startloop, endloop, sampleRate;
+
+	char originalPitch;
+	char pitchCorrection;
+	uint16_t wSampleLink;
+	SFSampleLink sfSampleqaType;
+} shdrcast;
+
+typedef struct
+{
+	unsigned short
+			StartAddrOfs,
+			EndAddrOfs, StartLoopAddrOfs, EndLoopAddrOfs,
+			StartAddrCoarseOfs;
+	short ModLFO2Pitch, VibLFO2Pitch, ModEnv2Pitch, FilterFc, FilterQ, ModLFO2FilterFc, ModEnv2FilterFc,
+			EndAddrCoarseOfs, ModLFO2Vol, Unused1, ChorusSend, ReverbSend, Pan, Unused2, Unused3, Unused4, ModLFODelay, ModLFOFreq, VibLFODelay, VibLFOFreq, ModEnvDelay, ModEnvAttack, ModEnvHold, ModEnvDecay, ModEnvSustain, ModEnvRelease, Key2ModEnvHold, Key2ModEnvDecay, VolEnvDelay, VolEnvAttack, VolEnvHold, VolEnvDecay, VolEnvSustain, VolEnvRelease, Key2VolEnvHold, Key2VolEnvDecay, Instrument, Reserved1;
+	rangesType KeyRange, VelRange;
+	unsigned short StartLoopAddrCoarseOfs;
+	short Keynum, Velocity, Attenuation, Reserved2, EndLoopAddrCoarseOfs, CoarseTune, FineTune, SampleId, SampleModes, Reserved3, ScaleTune, ExclusiveClass, OverrideRootKey, Dummy;
+} zone_t;
+typedef struct
+{
+	phdr hdr;
+	int npresets;
+	zone_t *zones;
+} PresetZones;
+static PresetZones *presetZones;
+PresetZones findByPid(int pid, int bkid);
+
+PresetZones findPresetZones(int i, int nregions);
+PresetZones findPresetByName(const char *name);
+int findPresetZonesCount(int i);
 enum grntypes
 {
 	StartAddrOfs,
@@ -223,13 +227,15 @@ enum grntypes
 #define fivezeros 0, 0, 0, 0, 0
 #define defenvel -12000, -12000, -12000, -12000, 0, -12000
 
-#define defattrs                          \
-	{                                       \
-			fivezeros, 0, 0, 0, 13500,          \
-			fivezeros, fivezeros, 0, 0, -12000, \
-			0, -12000, 0,                       \
-			defenvel, 0, 0, defenvel,           \
-			fivezeros, 0, 0,                    \
-			-1, -1, fivezeros, 0, 0,            \
-			100, 0, -1};
+#define defattrs                                 \
+	{                                              \
+			fivezeros, 0, 0, 0, 13500,					/* 9*/ \
+			fivezeros, fivezeros, 0, 0, -12000, /*22*/ \
+			0, -12000, 0,												/*25*/ \
+			defenvel, 0, 0, defenvel,						/*39*/ \
+			0, 0, 0, 0,                                \
+			127 << 8, 127 << 8, /*velrange/keyrange*/  \
+			0,									/*45*/                 \
+			-1, -1, fivezeros,	/*55*/                 \
+			0, 0, 0, 100, 0, -1, 0};
 #endif

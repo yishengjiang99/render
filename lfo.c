@@ -1,9 +1,7 @@
 
 #ifndef LFO_C
 #define LFO_C
-#include "ctx.h"
-#include "sf2.h"
-#include "LUT.c"
+#include "runtime.c"
 typedef short timecent;
 typedef short centone;
 typedef short centidb;
