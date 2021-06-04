@@ -38,7 +38,6 @@ void runlfo(lfo_t *lfo)
 			lfo->val = -2.0f + lfo->val;
 			lfo->stepIncVal *= -1;
 		}
-		printf("%f", lfo->val);
 	}
 }
 float lfo_mod_vol(float val, short modvol)

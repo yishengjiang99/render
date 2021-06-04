@@ -23,7 +23,7 @@ int main()
 	z.FineTune = 10;
 	printf("%f,%f", calcratio(&z, &sh, 55), powf(2.0f, (5500.0f - 6100.0f) / 1200.0f) * sh.sampleRate / ctx->sampleRate);
 	sh.sampleRate = g_ctx->sampleRate;
-	printf("\n%f,%f", calcratio(&z, &sh, 58), powf(2.0f, -10.0f / 1200.0f));
+
 	PresetZones pz = findPresetByName("Flute");
 	assert(pz.hdr.pid != 0);
 

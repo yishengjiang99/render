@@ -8,7 +8,7 @@ void loop(float *sample, float *output, float *ratio, int offset, float fract)
 		float f2 = *(sample + offset + 1);
 		float o1 = *(output + 2 * i + 1);
 		float o2 = *(output + 2 * i);
-		float gain = f1 + (f2 - f1) * v->frac;
+		float gain = f1 + (f2 - f1) * fract;
 
 		float mono = gain * centdblut(envShift(v->ampvol)); // + attentuate); //[(int)envShift(v->ampvol)]; //* centdbLUT[v->z->Attenuation];
 		*(output + 2 * i) += mono * v->panRight;

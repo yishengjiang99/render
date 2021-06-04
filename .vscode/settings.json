@@ -103,7 +103,10 @@
 		"runtime.c": "cpp",
 		"gtest-typed-test.h": "c",
 		"luts.c": "cpp",
-		"lpf.c": "cpp"
+		"lpf.c": "cpp",
+		"lpf.h": "c",
+		"stdarg.h": "c",
+		"biquad.c": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "Enabled"
 }

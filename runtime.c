@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <assert.h>
-
+#include "libs/biquad.h"
 #include "runtime.h"
 #include "luts.c"
 
@@ -43,7 +43,7 @@ static inline uint32_t timecent2steps(short tc, uint32_t samplerate)
 {
 	return p2over1200(tc) * samplerate;
 }
-static inline float centtone2freq(short ct)
+static inline float centtone2freq(unsigned short ct)
 {
 	return p2over1200(ct - 6900) * 440.0f;
 }
@@ -92,32 +92,7 @@ int get_sf(int channelNumer, int key, int vel)
 	return found;
 }
 
-#ifndef LPF_C
-#define LPF_C
-#include <math.h>
 
-lpf_t *newLpf(lpf_t *l, float cutoff_freq, float sample_rate);
-float process_input(lpf_t *l, float input);
-#define pi 3.1415f
-
-lpf_t *newLpf(lpf_t *l, float cutoff_freq, float sample_rate)
-{
-	l->sample_rate = sample_rate;
-	l->cutoff_freq = cutoff_freq;
-	l->m1 = 0;
-	l->X = expf(-2.0f * pi * ((float)l->cutoff_freq /(float) l->sample_rate));
-	return l;
-}
-
-float process_input(lpf_t *l, float input)
-{
-	l->input = input;
-	l->output = l->input * (1.0f - l->X) + l->m1 * l->X;
-	l->m1 = l->input * (1.0f - l->X) + l->m1 * l->X;
-	return l->m1;
-}
-
-#endif
 adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay, short sustain, int sampleRate)
 {
 	adsr_t *env = (adsr_t *)malloc(sizeof(adsr_t));
@@ -200,17 +175,15 @@ void loop(voice *v, float *output)
 		float o1 = *(output + 2 * i + 1);
 		float o2 = *(output + 2 * i);
 		float gain = hermite4(v->frac, fm1, f1, f2, f3);
-		printf("%f\n",gain);
 		//f1 + (f2 - f1) * v->frac;
 		if (v->lpf != NULL)
 		{
-			gain = process_input(v->lpf, gain);
-					printf("aass%f\n",gain);
+			gain = BiQuad(f1, v->lpf)*1.0;	//	printf("\t %f 	%f\n",gain);
 
 		}
 
-		float mono = gain * centdblut(envShift(v->ampvol)); //+ v->attenuate);
-		*(output + 2 * i) += mono * v->panRight;
+		float mono = gain * centdblut(envShift(v->ampvol) + v->attenuate);
+		*(output + 2 * i) +=mono * v->panRight;
 		*(output + 2 * i + 1) += mono * v->panLeft;
 
 		v->frac += v->ratio;
@@ -230,6 +203,53 @@ void loop(voice *v, float *output)
 		}
 	}
 }
+
+#define debugggssg 1
+#ifdef debugggg
+#include <assert.h>
+#include "sf2.c"
+void cb(ctx_t *ctx)
+{
+	for (int i = 0; i < 128; i++)
+		printf("\n%f", ctx->outputbuffer[0]);
+}
+int gg()
+{
+	init_ctx();
+	FILE *f = fopen("GeneralUserGS.sf2", "rb");
+	if (!f)
+		perror("oaffdf");
+
+	readsf(f);
+
+
+	g_ctx->outputFD = ffp(2,48000);
+	g_ctx->channels[0].voices = NULL;
+	g_ctx->mastVol=1.0f;
+			for (int i = 0; i < 6; i++){
+	
+
+		setProgram(i, phdrs[i].pid);
+	
+	}
+		for (int m = 44; m < 78; m++)
+		{	
+			for (int i = 0; i < 6; i++){
+					noteOn(i, m+i, i*10, 0);
+
+			}
+			render_fordr(g_ctx, 1, NULL);
+				for (int i = 0; i < 6; i++){
+					noteOff(i, m+i);
+			}
+			render_fordr(g_ctx, 3, NULL);			
+							for (int i = 0; i < 6; i++){
+		g_ctx->channels[i].voices=NULL;
+							}
+
+		}
+}
+#endif
 void insertV(voice **start, voice *nv)
 {
 	voice **tr = start;
@@ -267,12 +287,12 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid)
 	v->velocity = vel;
 	v->panLeft = panLeftLUT(z->Pan);
 	v->panRight = 1 - v->panLeft;
-	v->attenuate = z->Attenuation + velCB[vel];
+	v->attenuate = z->Attenuation -velCB[vel];
 
-	if (z->FilterFc < 13000)
+	if (z->FilterFc < 14000)
 	{
-		v->lpf = (lpf_t *)malloc(sizeof(lpf_t));
-		newLpf(v->lpf, centtone2freq(z->FilterFc), g_ctx->sampleRate);
+		v->lpf = BiQuad_new(LPF,8.0f, powf(2, (float)z->FilterFc / 1200.0f), g_ctx->sampleRate, 1.0);
+
 	}
 	g_ctx->refcnt++;
 	return v;

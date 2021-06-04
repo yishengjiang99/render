@@ -4,10 +4,9 @@
 #include <strings.h>
 #include <assert.h>
 
-#include "libs/fft.c"
-#include "sf2.c"
-#include "runtime.c"
-#include "libs/wavetable_oscillator.c"
+#include "libs/fft.h"
+#include "runtime.h"
+#include "libs/wavetable_oscillator.h"
 
 static double *stbl;
 static FILE *fdout;
@@ -59,7 +58,6 @@ int p1()
 	{                                                                                \
                                                                                    \
 		oscref->wave000 = ff;                                                          \
-		oscref->wave001 = silence;                                                     \
                                                                                    \
 		set_midi(0, midi);                                                             \
 		for (int i = 0; i < 48000; i += oscref->samples_per_block)                     \
@@ -133,9 +131,7 @@ int p1()
 
 int main()
 {
-#define dspbuffersize 4096
-	p1();
-	return 1;
+
 	init_ctx();
 	readsf(fopen("GeneralUserGS.sf2", "rb"));
 	setProgram(0, 0);

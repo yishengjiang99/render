@@ -1,3 +1,4 @@
+#include "sf2.c"
 #include "runtime.c"
 #include <assert.h>
 #include "call_ffp.c"
@@ -9,7 +10,7 @@ void cb(ctx_t *ctx)
 int main()
 {
 	init_ctx();
-	FILE *f = fopen("file.sf2", "rb");
+	FILE *f = fopen("GeneralUserGS.sf2", "rb");
 	if (!f)
 		perror("oaffdf");
 
@@ -30,7 +31,7 @@ int main()
 				 v->sample->endloop, v->endloop);
 
 	printvoice(g_ctx->channels[0].voices);
-	g_ctx->outputFD = ffp(2, 48000);
+	g_ctx->outputFD = fopen("test.pcm", "wb");
 	g_ctx->channels[0].voices = NULL;
 	for (int i = 0; i < 8; i++)
 	{
@@ -42,8 +43,7 @@ int main()
 			noteOn(i, m, 55, 0);
 			render_fordr(g_ctx, .2, NULL);
 			noteOff(i, m);
-			render_fordr(g_ctx, 1, NULL);
 		}
-		break;
+		render_fordr(g_ctx, 1, NULL);
 	}
 }

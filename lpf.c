@@ -2,6 +2,7 @@
 #define LPF_C
 #include <math.h>
 #include <string.h>
+#include "lpf.h"
 #define pi 3.1415f
 
 lpf_t *newLpf(lpf_t *l, float cutoff_freq, float sample_rate)
@@ -17,7 +18,7 @@ float process_input(lpf_t *l, float input)
 {
 	l->input = input;
 	l->output = l->input * (1.0f - l->X) + l->m1 * l->X;
-	//printf("\n%f ", l->input * (1.0f - l->X));
+
 	l->m1 = l->input * (1.0f - l->X) + l->m1 * l->X;
 	return l->m1;
 }

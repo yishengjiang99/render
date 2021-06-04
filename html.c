@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include "sf2.h"
+#include "sf2.c"
+#include "runtime.c"
 void echo(char *str, ...)
 {
 	va_list args;
@@ -12,11 +13,11 @@ int main()
 {
 
 	readsf(fopen("GeneralUserGS.sf2", "rb"));
-	short attrs[60] = defattrs;
-	zone_t *z = (zone_t *)z;
-	printf("%d", z->OverrideRootKey);
+
 	init_ctx();
-	readsf(fopen("GeneralUserGS.sf2", "rb"));
-	setProgram(9, 0);
-	noteOn(9, 44, 55, 0);
+	setProgram(0, 0);
+	for (int i = 0; i < g_ctx->channels[0].pzset.npresets; i++)
+	{
+		printf("\n%hd %f", g_ctx->channels[0].pzset.zones[i].FilterF, g_ctx->channels[0].pzset.zones[i].FilterFc, powf(2, (float)g_ctx->channels[0].pzset.zones[i].FilterFc / 1200.0f));
+	}
 }

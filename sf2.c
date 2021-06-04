@@ -210,19 +210,19 @@ PresetZones findPresetZones(int i, int nregions)
 							lastSampId = g->val.shAmount; // | (ig->val.ranges.hi << 8);
 							for (int i = 0; i < 60; i++)
 							{
-								if (attrs[ibg_attr_cache_index + i] != defvals[i])
+								if (attrs[ibg_attr_cache_index + i] )
 								{
 									zoneattr[i] = attrs[ibg_attr_cache_index + i];
 								}
-								else if (attrs[default_ibagcache_idex + i] != defvals[i])
+								else if (attrs[default_ibagcache_idex + i])
 								{
 									zoneattr[i] = attrs[default_ibagcache_idex + i];
 								}
-								if (attrs[pbg_attr_cache_index + i] != defvals[i])
+								if (attrs[pbg_attr_cache_index + i] )
 								{
 									zoneattr[i] += attrs[pbg_attr_cache_index + i];
 								}
-								else if (attrs[default_pbg_cache_index + i] != defvals[i])
+								else if (attrs[default_pbg_cache_index + i] )
 								{
 									zoneattr[i] += attrs[pbg_attr_cache_index + i];
 								}
