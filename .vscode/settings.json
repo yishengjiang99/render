@@ -108,7 +108,8 @@
 		"stdarg.h": "c",
 		"biquad.c": "cpp",
 		"biquad.h": "c",
-		"call_ffp.c": "cpp"
+		"call_ffp.c": "cpp",
+		"gen_ops.h": "c"
 	},
 	"C_Cpp.errorSquiggles": "Enabled"
 }

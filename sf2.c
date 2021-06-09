@@ -53,10 +53,8 @@ void readsf(FILE *fd) {
   readSection(shdr);
   presetZones = (PresetZones *)malloc(nphdrs * sizeof(PresetZones));
   for (int i = 0; i < nphdrs; i++) {
-    //	printf("%s %d %d\n", phdrs[i].name, phdrs[i].pid, phdrs[i].bankId);
     *(presetZones + i) = findPresetZones(i, findPresetZonesCount(i));
   }
-  // findByPid(0, 128);
 }
 PresetZones findByPid(int pid, int bkid) {
   for (unsigned short i = 0; i < nphdrs - 1; i++) {
