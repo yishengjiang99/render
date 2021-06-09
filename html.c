@@ -15,7 +15,7 @@ void printpreset(char *file, int pid, int bankId) {
           "\n<details style='overflow-x:auto;'> <summary><span>%s "
           "(%d)</span></summary>",
           pz.hdr.name, pz.hdr.pid);
-  fprintf(output, " \n <table class='table-auto'>");
+  fprintf(output, " \n <table border=1>");
 
   zone_t *zones = pz.zones;
   for (int j = 0; j < pz.npresets - 1; j++) {
@@ -66,16 +66,12 @@ int main(int argc, char **argv) {
   echo("<head><style>font{size:14px}</style></head><body>");
   echo("<pre>");
   readsf(fopen(file, "rb"));
+
   echo("</pre>");
   fprintf(output, "<table><tr><td>");
   fprintf(output, "<main>");
-  printpreset(file, 0, 0);
-
-  for (int i = 0; i < 128; i++) {
-    printpreset(file, i, 0);
-  }
-  for (int i = 0; i < 128; i++) {
-    printpreset(file, i, 128);
+  for (int i = 0; i < nphdrs; i++) {
+    printpreset(file, phdrs[i].pid, phdrs[i].bankId);
   }
   echo("</td><td valign=top>");
   echo("<div id=details></div></td></tr></table>");

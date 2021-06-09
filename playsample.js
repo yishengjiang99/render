@@ -18,7 +18,7 @@ document.body.onclick = (e) => {
 				Range: range
 			}
 		}).then(res => res.arrayBuffer()).then(ab => {
-			const s16tof32 = (i16) => (i16 > 0 ? i16 / 0xffff : -1 - i16 / 0xffff);
+			const s16tof32 = (i16) => i16 / 0xffff;
 			const ctx = new AudioContext({sampleRate: sr});
 			const s16s = new Int16Array(ab)
 			const audb = ctx.createBuffer(2, s16s.length, 48000);
