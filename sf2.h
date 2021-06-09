@@ -110,6 +110,7 @@ static short *data;
 static void *info;
 static int nsamples;
 static float *sdta;
+static int sdtastart;
 
 typedef struct {
   char name[20];

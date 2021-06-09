@@ -1,10 +1,10 @@
-all: fft-samples.o runtime.o midi.o
+all: runtime.o midi.o html.o
 
-fft-samples.o: sf2.o fft.o wavetable_oscillator.o runtime.o 
-	gcc sf2.o fft.o wavetable_oscillator.o runtime.o fft-samples.c -o fft-samples.o
+# fft-samples.o: sf2.o fft.o wavetable_oscillator.o runtime.o 
+# 	gcc sf2.o fft.o wavetable_oscillator.o runtime.o fft-samples.c -o fft-samples.o
 
 midi.o: runtime.o sf2.o
-	gcc runtime.o sf2.o midi.c -o midi.o
+	gcc libs/biquad.c runtime.o sf2.o midi.c -o midi.o
 	
 fft.o :
 	gcc -c libs/fft.c -o fft.o

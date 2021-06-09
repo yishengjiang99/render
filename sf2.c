@@ -21,7 +21,7 @@ void readsf(FILE *fd) {
   sdta = (float *)malloc(h2->size / 2 * sizeof(float));
   float *trace = sdta;
   nsamples = h2->size / sizeof(short);
-
+  sdtastart = ftell(fd);
   printf("\n\t %ld", ftell(fd));
   fread(data, sizeof(short), nsamples, fd);
 
@@ -64,10 +64,12 @@ PresetZones findByPid(int pid, int bkid) {
       return presetZones[i];
     }
   }
-  if (pid > 0)
-    return findByPid(pid--, bkid);
-  else
-    return presetZones[0];
+
+  return (PresetZones){
+      (phdr){"", 0, 0, 0, ""},
+      0,
+      NULL,
+  };
 }
 PresetZones findPresetByName(const char *name) {
   for (unsigned short i = 0; i < nphdrs - 1; i++) {

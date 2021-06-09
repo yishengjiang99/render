@@ -1,116 +1,88 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h>
 
 #include "gen_ops.h"
 #include "sf2.c"
-#define echo(str) fprintf(stdout, str);
-
-void printpreset(int pid, int bkdrums) {
-#define getRange(attr) ((rangesType *)attrs[k])
+#define echo(str) fprintf(output, str);
+static FILE *output;
+void printpreset(char *file, int pid, int bankId) {
   char misc[1024];
   uint32_t miscoffset = 0;
-  PresetZones pz = findByPid(pid, bkdrums ? 0 : 128);
-  fprintf(stdout, "<div style='overflow-x:auto;'>");
-  fprintf(stdout, "   <table class='table-auto'>");
-  echo(
-      "<thead><td colspan=3>mod2pitch</td><td>FilterFc</td><td>FilterQ</td><td "
-      "colspan=2>mod_lpf</td><td>ModLFO2Vol</td><td>ChorusSend</"
-      "td><td>ReverbSend</td><td>Pan</td><td>ModLFODelay</td><td>ModLFOFreq</"
-      "td><td>VibLFODelay</td><td>VibLFOFreq</td><td "
-      "colspan=6>volume-delay/att/hold/decay/sus/release</"
-      "td><td>Key2VolEnvHold</td><td>Key2VolEnvDecay</td><td>Instrument</"
-      "td><td>Reserved1</td><td>KeyRange</td><td>VelRange</td><td>Keynum</"
-      "td><td>Velocity</td><td>Attenuation</td><td>Reserved2</"
-      "td><td>CoarseTune</td><td>FineTune</td><td>SampleId</"
-      "td><td>SampleModes</td><td>Reserved3</td><td>ScaleTune</"
-      "td><td>ExclusiveClass</td><td>OverrideRootKey</td><td>Dummy</td></"
-      "thead>");
+  PresetZones pz = findByPid(pid, bankId);
+
+  if (pz.npresets == 0) return;
+  fprintf(output, "\n<summary style='overflow-x:auto;'> <span>%s (%d)</span>",
+          pz.hdr.name, pz.hdr.pid);
+  fprintf(output, " \n<details>  <table class='table-auto'>");
+
   zone_t *zones = pz.zones;
-  for (int j = 0; j < pz.npresets; j++) {
-    fprintf(stdout, "<tr>");
-    short *attrs = (short *)zones;
-    for (int k = 0; k < 60; k++) {
-      switch (k) {
-        case VelRange:
-          fprintf(stdout, "<td>%hu-%hu</td>", zones->VelRange.lo,
-                  zones->VelRange.hi);
-          break;
-        case KeyRange:
-          fprintf(stdout, "<td>%hu-%hu</td>", zones->KeyRange.lo,
-                  zones->KeyRange.hi);
-
-          break;
-        case StartAddrOfs:
-        case EndAddrOfs:
-        case StartLoopAddrOfs:
-        case EndLoopAddrOfs:
-        case StartAddrCoarseOfs:
-        case EndAddrCoarseOfs:
-        case StartLoopAddrCoarseOfs:
-        case EndLoopAddrCoarseOfs:
-        case Unused1:
-        case Unused2:
-        case Unused3:
-        case Unused4:
-          continue;
-          break;
-        case ModEnvAttack:
-        case ModEnvDecay:
-        case ModEnvRelease:
-        case ModEnvSustain:
-        case ModEnvHold:
-
-          misc[miscoffset] = attrs[k];
-          miscoffset += 4;
-          break;
-        default:
-          fprintf(stdout, "<td>%hd</td>", attrs[k]);
-          break;
-      }
-    }
-    fprintf(stdout, "</tr>");
+  for (int j = 0; j < pz.npresets - 1; j++) {
+    shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);
+    fprintf(output, "<tr>");
+    fprintf(output, "<td>%hu-%hu</td>", zones->VelRange.lo, zones->VelRange.hi);
+    fprintf(output, "<td>%hu-%hu</td>", zones->KeyRange.lo, zones->KeyRange.hi);
+    fprintf(output,
+            "<td>%d <a href='render.php?range=%d-%d'>Play sample</a></td>",
+            sampl->end - sampl->start, sampl->start, sampl->end);
+    fprintf(
+        output,
+        "<td><a href='#'class='pcm' file='%s' range='bytes=%d-%d'>sample (%d "
+        "smpls)</a></td>",
+        file, sdtastart + 2 * sampl->start, sdtastart + 2 * sampl->end + 1,
+        sampl->end - sampl->start);
+    fprintf(output, "<td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td>",
+            zones->Attenuation, zones->FilterFc, zones->OverrideRootKey,
+            zones->CoarseTune, zones->FineTune);
+    fprintf(
+        output,
+        "<td><svg viewbox='0,0,100,30'>"
+        "<polyline points='0,30 %d,30 %d,0 %d,0 100,%d 100,30'/></svg></td>",
+        (int)((float)zones->VolEnvDelay / (float)zones->VolEnvDecay),
+        (int)((float)zones->VolEnvAttack / (float)zones->VolEnvDecay),
+        (int)((float)zones->VolEnvHold / (float)zones->VolEnvDecay),
+        (int)((float)zones->VolEnvSustain / 960.0f));
+    fprintf(output, "</tr>");
     zones++;
   }
-  fprintf(stdout, "  </table>");
-  fprintf(stdout, "</div>");
+  fprintf(output, "  </table></details>");
+  fprintf(output, "</summary>");
 }
-#include <signal.h>
-#include <unistd.h>
-volatile uint32_t UART_sic_msg = 0;
-uint8_t bitshift = 0;
-void onsig(int signo) {
-  switch (signo) {
-    case SIGUSR1:
-      bitshift++;
-      break;
-    case SIGUSR2:
-      bitshift++;
-      break;
-    default:
-      break;
+
+int main(int argc, char **argv) {
+  char *file = argc > 2 ? argv[2] : "GeneralUserGS.sf2";
+  char outputfile[1024];
+  sprintf(outputfile, "%s.html", file);
+  output = fopen(outputfile, "w+");
+  if (!output) {
+    perror("failed to open output file");
+    return 1;
   }
-}
-int main() {
-  echo(
-      "<!DOCTYPE HTML><head><link rel='stylesheet' "
-      "href='tailwind.min.css'></head><html>");
+  echo("<!DOCTYPE HTML><html>");
+  echo("<head></head><body>");
   echo("<pre>");
-  readsf(fopen("GeneralUserGS.sf2", "rb"));
+  readsf(fopen(file, "rb"));
   echo("</pre>");
-  echo("<select id='phdrsel'>");
-  for (int i = 0; i < nphdrs; i++) {
-    if (phdrs[i].bankId != 0) continue;
-    fprintf(stdout, "<option value='%d'>%s</option>", i, phdrs[i].name);
+
+  fprintf(output, "<main>");
+  printpreset(file, 0, 0);
+
+  // for (int i = 0; i < 128; i++) {
+  //   printpreset(file, i, 0);
+  // }
+  // for (int i = 0; i < 128; i++) {
+  //   printpreset(file, i, 128);
+  // }
+  echo("</main>");
+  echo("<script>");
+  FILE *js = fopen("playsample.js", "r");
+  char c;
+  while (!feof(js)) {
+    char c = fgetc(js);
+    if (c > 0x00) fputc(c, output);
   }
-  echo("</select>");
+  echo("</script>");
 
-  pid_t pid;
-  // setProgram(0, 0);
-  fprintf(stdout, "<body><main class='container'>");
-  printpreset(0, 0);
-
-  signal(SIGUSR1, onsig);
-  signal(SIGUSR2, onsig);
-  echo("\n");
+  echo("</body></html>");
 }
