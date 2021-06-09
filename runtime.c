@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <strings.h>
 
+#include "libs/biquad.c"
 #include "luts.c"
+#include "sf2.c"
 
 #ifndef lut
 #define lut
@@ -56,9 +58,9 @@ int get_sf(int channelNumer, int key, int vel) {
   zone_t *zones = ch.pzset.zones;
   int found = 0;
   for (int i = 0; i < ch.pzset.npresets; i++, zones++) {
-    if (vel > -1 && zones->VelRange.lo > vel || zones->VelRange.hi < vel)
+    if (vel > -1 && (zones->VelRange.lo > vel || zones->VelRange.hi < vel))
       continue;
-    if (key > -1 && zones->KeyRange.lo > key || zones->KeyRange.hi < key)
+    if (key > -1 && (zones->KeyRange.lo > key || zones->KeyRange.hi < key))
       continue;
     newVoice(zones, key, vel, channelNumer);
     found++;
@@ -142,9 +144,9 @@ void loop(voice *v, float *output) {
       gain = BiQuad(f1, v->lpf) * 1.0;  //	printf("\t %f 	%f\n",gain);
     }
 
-    float mono = gain * centdblut(envShift(v->ampvol) + v->attenuate);
-    *(output + 2 * i) += mono * v->panRight;
-    *(output + 2 * i + 1) += mono * v->panLeft;
+    float mono = gain * centdblut(envShift(v->ampvol));
+    *(output + 2 * i) += gain;
+    *(output + 2 * i + 1) += mono;
 
     v->frac += v->ratio;
     while (v->frac >= 1.0f) {
@@ -161,15 +163,16 @@ void loop(voice *v, float *output) {
   }
 }
 
-#define debugggssg 1
+#define debugggg 1
 #ifdef debugggg
 #include <assert.h>
 
+#include "call_ffp.c"
 #include "sf2.c"
 void cb(ctx_t *ctx) {
   for (int i = 0; i < 128; i++) printf("\n%f", ctx->outputbuffer[0]);
 }
-int gg() {
+int main() {
   init_ctx();
   FILE *f = fopen("GeneralUserGS.sf2", "rb");
   if (!f) perror("oaffdf");
@@ -238,7 +241,7 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   v->velocity = vel;
   v->panLeft = panLeftLUT(z->Pan);
   v->panRight = 1 - v->panLeft;
-  v->attenuate = z->Attenuation - velCB[vel];
+  v->attenuate = z->Attenuation + velCB[vel];
 
   if (z->FilterFc < 14000) {
     v->lpf = BiQuad_new(LPF, 8.0f, powf(2, (float)z->FilterFc / 1200.0f),

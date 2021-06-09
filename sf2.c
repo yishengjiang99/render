@@ -185,7 +185,7 @@ PresetZones findPresetZones(int i, int nregions) {
             sanitizedInsert(attrs, attr_inex + g->genid, g);
             if (g->genid == SampleId) {
               short zoneattr[60] = defattrs;
-
+              int add = 1;
               lastSampId = g->val.shAmount;  // | (ig->val.ranges.hi << 8);
               for (int i = 0; i < 60; i++) {
                 if (attrs[ibg_attr_cache_index + i]) {
@@ -193,21 +193,46 @@ PresetZones findPresetZones(int i, int nregions) {
                 } else if (attrs[default_ibagcache_idex + i]) {
                   zoneattr[i] = attrs[default_ibagcache_idex + i];
                 }
-                if (attrs[pbg_attr_cache_index + i]) {
-                  zoneattr[i] += attrs[pbg_attr_cache_index + i];
-                } else if (attrs[default_pbg_cache_index + i]) {
-                  zoneattr[i] += attrs[pbg_attr_cache_index + i];
+
+                if (i == VelRange || i == KeyRange) {
+                  genAmountType instrATtr = ((genAmountType)zoneattr[i]);
+                  genAmountType prange =
+                      ((genAmountType)attrs[pbg_attr_cache_index + i]);
+                  if (prange.ranges.lo > instrATtr.ranges.hi ||
+                      prange.ranges.hi < instrATtr.ranges.lo) {
+                    add = 0;
+                    break;
+                  }
+                  if (prange.ranges.lo > instrATtr.ranges.lo) {
+                    instrATtr.ranges.lo = prange.ranges.lo;
+                  }
+                  if (prange.ranges.hi < instrATtr.ranges.hi) {
+                    instrATtr.ranges.hi = prange.ranges.hi;
+                  }
+                  if (instrATtr.ranges.hi == 0) {
+                    add = 0;
+                    break;
+                  }
+                  zoneattr[i] = (short)instrATtr.shAmount;
+                } else {
+                  if (attrs[pbg_attr_cache_index + i]) {
+                    zoneattr[i] += attrs[pbg_attr_cache_index + i];
+                  } else if (attrs[default_pbg_cache_index + i]) {
+                    zoneattr[i] += attrs[default_pbg_cache_index + i];
+                  }
                 }
               }
-              memcpy(zones + found, zoneattr, 60 * sizeof(short));
+              if (add) {
+                memcpy(zones + found, zoneattr, 60 * sizeof(short));
 
-              found++;
+                found++;
+              }
             }
           }
         }
       }
     }
   }
-  return (PresetZones){phdrs[i], nregions, zones};
+  return (PresetZones){phdrs[i], found, zones};
 }
 #endif

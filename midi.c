@@ -5,8 +5,8 @@
 #include <unistd.h>
 
 #include "call_ffp.c"
-#include "runtime.h"
-#include "sf2.h"
+#include "runtime.c"
+#include "sf2.c"
 #include "tml.h"
 #ifndef TICTOK_C
 #define TICTOK_C
@@ -71,8 +71,8 @@ int main(int argc, char **argv) {
           switch (m->control) {
             case TML_VOLUME_MSB:
               ch = &(ctx->channels[m->channel]);
-              ch->midi_volume = m->control_value;
-              printf("%hu", ch->midi_volume);
+              // ch->midi_volume = m->control_value;
+              // printf("%hu", ch->midi_volume);
               break;
             default:
 
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
             noteOff((int)m->channel, (int)m->key);
           } else {
             noteOn((int)m->channel, (int)m->key, (int)m->velocity, m->time);
-            printf("\n%d**", g_ctx->refcnt);
+            printf("\n%d**\n", g_ctx->refcnt);
           }
 
           break;

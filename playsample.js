@@ -2,7 +2,7 @@ let ctx;
 document.body.onclick = (e) => {
 	if (!e.target.classList.contains('pcm')) return;
 	e.preventDefault();
-	ctx = ctx || new AudioContext();
+	ctx = ctx || new AudioContext({sampleRate: 44100});
 	const file = e.target.getAttribute('file');
 	const range = e.target.getAttribute('range');
 	fetch(file, {

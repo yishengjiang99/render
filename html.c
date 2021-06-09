@@ -13,9 +13,11 @@ void printpreset(char *file, int pid, int bankId) {
   PresetZones pz = findByPid(pid, bankId);
 
   if (pz.npresets == 0) return;
-  fprintf(output, "\n<summary style='overflow-x:auto;'> <span>%s (%d)</span>",
+  fprintf(output,
+          "\n<details style='overflow-x:auto;'> <summary><span>%s "
+          "(%d)</span></summary>",
           pz.hdr.name, pz.hdr.pid);
-  fprintf(output, " \n<details>  <table class='table-auto'>");
+  fprintf(output, " \n <table class='table-auto'>");
 
   zone_t *zones = pz.zones;
   for (int j = 0; j < pz.npresets - 1; j++) {
@@ -35,19 +37,10 @@ void printpreset(char *file, int pid, int bankId) {
     fprintf(output, "<td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td>",
             zones->Attenuation, zones->FilterFc, zones->OverrideRootKey,
             zones->CoarseTune, zones->FineTune);
-    fprintf(
-        output,
-        "<td><svg viewbox='0,0,100,30'>"
-        "<polyline points='0,30 %d,30 %d,0 %d,0 100,%d 100,30'/></svg></td>",
-        (int)((float)zones->VolEnvDelay / (float)zones->VolEnvDecay),
-        (int)((float)zones->VolEnvAttack / (float)zones->VolEnvDecay),
-        (int)((float)zones->VolEnvHold / (float)zones->VolEnvDecay),
-        (int)((float)zones->VolEnvSustain / 960.0f));
     fprintf(output, "</tr>");
     zones++;
   }
   fprintf(output, "  </table></details>");
-  fprintf(output, "</summary>");
 }
 
 int main(int argc, char **argv) {
