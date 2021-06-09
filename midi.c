@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
   tml_message *m = tml_load_filename(argc > 1 ? argv[1] : "song.mid");
   channel_t *ch;
   init_ctx();
-  readsf(fopen("GeneralUserGS.sf2", "rb"));
+  readsf(fopen("FluidR3_GM.sf2", "rb"));
 
   int msec = 0;
 
@@ -90,10 +90,13 @@ int main(int argc, char **argv) {
           setProgram(m->channel, m->program);
           break;
         case TML_NOTE_ON:
+
           if (m->velocity == 0) {
             noteOff((int)m->channel, (int)m->key);
           } else {
             noteOn((int)m->channel, (int)m->key, (int)m->velocity, m->time);
+            printf("%d on %d %d\n", m->channel, m->key, m->time);
+
             printf("\n%d**\n", g_ctx->refcnt);
           }
 

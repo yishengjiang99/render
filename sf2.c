@@ -191,27 +191,21 @@ PresetZones findPresetZones(int i, int nregions) {
                 } else if (attrs[default_ibagcache_idex + i]) {
                   zoneattr[i] = attrs[default_ibagcache_idex + i];
                 }
+                short pbagAttr = attrs[pbg_attr_cache_index + i];
 
                 if (i == VelRange || i == KeyRange) {
-                  genAmountType instrATtr = ((genAmountType)zoneattr[i]);
-                  genAmountType prange =
-                      ((genAmountType)attrs[pbg_attr_cache_index + i]);
-                  if (prange.ranges.lo > instrATtr.ranges.hi ||
-                      prange.ranges.hi < instrATtr.ranges.lo) {
+                  int irange[2] = {zoneattr[i] & 0x007f,
+                                   zoneattr[i] & 0x7f00 >> 8};
+                  int prange[2] = {pbagAttr & 0x007f, (pbagAttr & 0x7f00) >> 8};
+                  if (prange[0] > irange[1] || prange[1] < irange[0]) {
                     add = 0;
                     break;
                   }
-                  if (prange.ranges.lo > instrATtr.ranges.lo) {
-                    instrATtr.ranges.lo = prange.ranges.lo;
-                  }
-                  if (prange.ranges.hi < instrATtr.ranges.hi) {
-                    instrATtr.ranges.hi = prange.ranges.hi;
-                  }
-                  if (instrATtr.ranges.hi == 0) {
-                    add = 0;
-                    break;
-                  }
-                  zoneattr[i] = (short)instrATtr.shAmount;
+                  if (prange[1] < irange[1]) irange[1] = prange[1];
+
+                  if (prange[0] > irange[0]) irange[0] = prange[0];
+
+                  zoneattr[i] = (short)(irange[1] << 8 | irange[0]);
                 } else {
                   if (attrs[pbg_attr_cache_index + i]) {
                     zoneattr[i] += attrs[pbg_attr_cache_index + i];

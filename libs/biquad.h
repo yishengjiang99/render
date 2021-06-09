@@ -67,19 +67,5 @@ smp_type BiQuad(smp_type sample, biquad *b);
 /* sets up a BiQuad Filter */
 biquad *BiQuad_new(int type, smp_type dbGain, smp_type freq, smp_type srate,
                    smp_type bandwidth);
-// #include <printf.h>
-// /* crc==3062280887, version==4, Sat Jul  7 00:03:23 2001 */
-// int mains()
-// {
-// 	biquad *lpf = BiQuad_new(LPF, 4, 599, 48000, 1.0);
-// 	float fl[1024 * 1024];
-// 	int i = 0;
-// 	fread(fl, 54, 1024 * 1024, fopen("15v16.pcm", "rb"));
-// 	while (i < 1024 * 1024)
-// 	{
-// 		printf("\n%f %f", fl[i], BiQuad(fl[i], lpf));
-// 		i++;
-// 	}
-// }
 
 #endif

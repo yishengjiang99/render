@@ -53,7 +53,7 @@ biquad *BiQuad_new(int type, smp_type dbGain, smp_type freq, smp_type srate,
   smp_type A, omega, sn, cs, alpha, beta;
   smp_type a0, a1, a2, b0, b1, b2;
 
-  b = malloc(sizeof(biquad));
+  b = (biquad *)malloc(sizeof(biquad));
   if (b == NULL) return NULL;
 
   /* setup variables */

@@ -164,7 +164,7 @@ void loop(voice *v, float *output) {
 }
 
 #define debugggg 1
-#ifdef debugggg
+#ifdef debg
 #include <assert.h>
 
 #include "call_ffp.c"
