@@ -1,5 +1,3 @@
-#ifndef BIQUAD_H
-#define BIQUAD_H
 
 /* Simple implementation of Biquad filters -- Tom St Denis
  *
@@ -23,175 +21,121 @@ http://www.smartelectronix.com/musicdsp/text/filters005.txt
 */
 
 /* this would be biquad.h */
+#include "biquad.h"
+
 #include <math.h>
 #include <stdlib.h>
 
-#ifndef M_LN2
-#define M_LN2 0.69314718055994530942
-#endif
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-/* whatever sample type you want */
-typedef float smp_type;
-
-/* this holds the data required to update samples thru a filter */
-typedef struct
-{
-	smp_type a0, a1, a2, a3, a4;
-	smp_type x1, x2, y1, y2;
-} biquad;
-
-extern smp_type BiQuad(smp_type sample, biquad *b);
-extern biquad *BiQuad_new(int type, smp_type dbGain, /* gain of filter */
-													smp_type freq,						 /* center frequency */
-													smp_type srate,						 /* sampling rate */
-													smp_type bandwidth);			 /* bandwidth in octaves */
-
-/* filter types */
-enum
-{
-	LPF,	 /* low pass filter */
-	HPF,	 /* High pass filter */
-	BPF,	 /* band pass filter */
-	NOTCH, /* Notch Filter */
-	PEQ,	 /* Peaking band EQ filter */
-	LSH,	 /* Low shelf filter */
-	HSH		 /* High shelf filter */
-};
-
 /* Below this would be biquad.c */
 /* Computes a BiQuad filter on a sample */
-smp_type BiQuad(smp_type sample, biquad *b)
-{
-	smp_type result;
+smp_type BiQuad(smp_type sample, biquad *b) {
+  smp_type result;
 
-	/* compute result */
-	result = b->a0 * sample + b->a1 * b->x1 + b->a2 * b->x2 -
-					 b->a3 * b->y1 - b->a4 * b->y2;
+  /* compute result */
+  result = b->a0 * sample + b->a1 * b->x1 + b->a2 * b->x2 - b->a3 * b->y1 -
+           b->a4 * b->y2;
 
-	/* shift x1 to x2, sample to x1 */
-	b->x2 = b->x1;
-	b->x1 = sample;
+  /* shift x1 to x2, sample to x1 */
+  b->x2 = b->x1;
+  b->x1 = sample;
 
-	/* shift y1 to y2, result to y1 */
-	b->y2 = b->y1;
-	b->y1 = result;
+  /* shift y1 to y2, result to y1 */
+  b->y2 = b->y1;
+  b->y1 = result;
 
-	return result;
+  return result;
 }
 
 /* sets up a BiQuad Filter */
-biquad *BiQuad_new(int type, smp_type dbGain, smp_type freq,
-									 smp_type srate, smp_type bandwidth)
-{
-	biquad *b;
-	smp_type A, omega, sn, cs, alpha, beta;
-	smp_type a0, a1, a2, b0, b1, b2;
+biquad *BiQuad_new(int type, smp_type dbGain, smp_type freq, smp_type srate,
+                   smp_type bandwidth) {
+  biquad *b;
+  smp_type A, omega, sn, cs, alpha, beta;
+  smp_type a0, a1, a2, b0, b1, b2;
 
-	b = malloc(sizeof(biquad));
-	if (b == NULL)
-		return NULL;
+  b = malloc(sizeof(biquad));
+  if (b == NULL) return NULL;
 
-	/* setup variables */
-	A = pow(10, dbGain / 40);
-	omega = 2 * M_PI * freq / srate;
-	sn = sin(omega);
-	cs = cos(omega);
-	alpha = sn * sinh(M_LN2 / 2 * bandwidth * omega / sn);
-	beta = sqrt(A + A);
+  /* setup variables */
+  A = pow(10, dbGain / 40);
+  omega = 2 * M_PI * freq / srate;
+  sn = sin(omega);
+  cs = cos(omega);
+  alpha = sn * sinh(M_LN2 / 2 * bandwidth * omega / sn);
+  beta = sqrt(A + A);
 
-	switch (type)
-	{
-	case LPF:
-		b0 = (1 - cs) / 2;
-		b1 = 1 - cs;
-		b2 = (1 - cs) / 2;
-		a0 = 1 + alpha;
-		a1 = -2 * cs;
-		a2 = 1 - alpha;
-		break;
-	case HPF:
-		b0 = (1 + cs) / 2;
-		b1 = -(1 + cs);
-		b2 = (1 + cs) / 2;
-		a0 = 1 + alpha;
-		a1 = -2 * cs;
-		a2 = 1 - alpha;
-		break;
-	case BPF:
-		b0 = alpha;
-		b1 = 0;
-		b2 = -alpha;
-		a0 = 1 + alpha;
-		a1 = -2 * cs;
-		a2 = 1 - alpha;
-		break;
-	case NOTCH:
-		b0 = 1;
-		b1 = -2 * cs;
-		b2 = 1;
-		a0 = 1 + alpha;
-		a1 = -2 * cs;
-		a2 = 1 - alpha;
-		break;
-	case PEQ:
-		b0 = 1 + (alpha * A);
-		b1 = -2 * cs;
-		b2 = 1 - (alpha * A);
-		a0 = 1 + (alpha / A);
-		a1 = -2 * cs;
-		a2 = 1 - (alpha / A);
-		break;
-	case LSH:
-		b0 = A * ((A + 1) - (A - 1) * cs + beta * sn);
-		b1 = 2 * A * ((A - 1) - (A + 1) * cs);
-		b2 = A * ((A + 1) - (A - 1) * cs - beta * sn);
-		a0 = (A + 1) + (A - 1) * cs + beta * sn;
-		a1 = -2 * ((A - 1) + (A + 1) * cs);
-		a2 = (A + 1) + (A - 1) * cs - beta * sn;
-		break;
-	case HSH:
-		b0 = A * ((A + 1) + (A - 1) * cs + beta * sn);
-		b1 = -2 * A * ((A - 1) + (A + 1) * cs);
-		b2 = A * ((A + 1) + (A - 1) * cs - beta * sn);
-		a0 = (A + 1) - (A - 1) * cs + beta * sn;
-		a1 = 2 * ((A - 1) - (A + 1) * cs);
-		a2 = (A + 1) - (A - 1) * cs - beta * sn;
-		break;
-	default:
-		free(b);
-		return NULL;
-	}
+  switch (type) {
+    case LPF:
+      b0 = (1 - cs) / 2;
+      b1 = 1 - cs;
+      b2 = (1 - cs) / 2;
+      a0 = 1 + alpha;
+      a1 = -2 * cs;
+      a2 = 1 - alpha;
+      break;
+    case HPF:
+      b0 = (1 + cs) / 2;
+      b1 = -(1 + cs);
+      b2 = (1 + cs) / 2;
+      a0 = 1 + alpha;
+      a1 = -2 * cs;
+      a2 = 1 - alpha;
+      break;
+    case BPF:
+      b0 = alpha;
+      b1 = 0;
+      b2 = -alpha;
+      a0 = 1 + alpha;
+      a1 = -2 * cs;
+      a2 = 1 - alpha;
+      break;
+    case NOTCH:
+      b0 = 1;
+      b1 = -2 * cs;
+      b2 = 1;
+      a0 = 1 + alpha;
+      a1 = -2 * cs;
+      a2 = 1 - alpha;
+      break;
+    case PEQ:
+      b0 = 1 + (alpha * A);
+      b1 = -2 * cs;
+      b2 = 1 - (alpha * A);
+      a0 = 1 + (alpha / A);
+      a1 = -2 * cs;
+      a2 = 1 - (alpha / A);
+      break;
+    case LSH:
+      b0 = A * ((A + 1) - (A - 1) * cs + beta * sn);
+      b1 = 2 * A * ((A - 1) - (A + 1) * cs);
+      b2 = A * ((A + 1) - (A - 1) * cs - beta * sn);
+      a0 = (A + 1) + (A - 1) * cs + beta * sn;
+      a1 = -2 * ((A - 1) + (A + 1) * cs);
+      a2 = (A + 1) + (A - 1) * cs - beta * sn;
+      break;
+    case HSH:
+      b0 = A * ((A + 1) + (A - 1) * cs + beta * sn);
+      b1 = -2 * A * ((A - 1) + (A + 1) * cs);
+      b2 = A * ((A + 1) + (A - 1) * cs - beta * sn);
+      a0 = (A + 1) - (A - 1) * cs + beta * sn;
+      a1 = 2 * ((A - 1) - (A + 1) * cs);
+      a2 = (A + 1) - (A - 1) * cs - beta * sn;
+      break;
+    default:
+      free(b);
+      return NULL;
+  }
 
-	/* precompute the coefficients */
-	b->a0 = b0 / a0;
-	b->a1 = b1 / a0;
-	b->a2 = b2 / a0;
-	b->a3 = a1 / a0;
-	b->a4 = a2 / a0;
+  /* precompute the coefficients */
+  b->a0 = b0 / a0;
+  b->a1 = b1 / a0;
+  b->a2 = b2 / a0;
+  b->a3 = a1 / a0;
+  b->a4 = a2 / a0;
 
-	/* zero initial samples */
-	b->x1 = b->x2 = 0;
-	b->y1 = b->y2 = 0;
+  /* zero initial samples */
+  b->x1 = b->x2 = 0;
+  b->y1 = b->y2 = 0;
 
-	return b;
+  return b;
 }
-#include <printf.h>
-/* crc==3062280887, version==4, Sat Jul  7 00:03:23 2001 */
-int mains()
-{
-	biquad *lpf = BiQuad_new(LPF, 4, 599, 48000, 1.0);
-	float fl[1024 * 1024];
-	int i = 0;
-	fread(fl, 54, 1024 * 1024, fopen("15v16.pcm", "rb"));
-	while (i < 1024 * 1024)
-	{
-		printf("\n%f %f", fl[i], BiQuad(fl[i], lpf));
-		i++;
-	}
-}
-
-#endif

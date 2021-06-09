@@ -106,7 +106,8 @@
 		"lpf.c": "cpp",
 		"lpf.h": "c",
 		"stdarg.h": "c",
-		"biquad.c": "cpp"
+		"biquad.c": "cpp",
+		"biquad.h": "c"
 	},
 	"C_Cpp.errorSquiggles": "Enabled"
 }
