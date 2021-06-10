@@ -11,6 +11,7 @@ typedef struct {
 } adsr_t;
 
 typedef struct _voice {
+  int done;
   zone_t *z;
   shdrcast *sample;
   unsigned int start, end, startloop, endloop;
