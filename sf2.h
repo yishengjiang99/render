@@ -92,7 +92,15 @@ typedef struct {
   char idc[12];
 } phdr;
 
-void readsf(FILE *f);
+typedef struct {
+  char name[20];
+  uint32_t start, end, startloop, endloop, sampleRate;
+
+  char originalPitch;
+  char pitchCorrection;
+  uint16_t wSampleLink;
+  SFSampleLink sfSampleqaType;
+} shdrcast;
 
 static int nphdrs, npbags, npgens, npmods, nshdrs, ninsts, nimods, nigens,
     nibags;
@@ -111,16 +119,6 @@ static void *info;
 static int nsamples;
 static float *sdta;
 static int sdtastart;
-
-typedef struct {
-  char name[20];
-  uint32_t start, end, startloop, endloop, sampleRate;
-
-  char originalPitch;
-  char pitchCorrection;
-  uint16_t wSampleLink;
-  SFSampleLink sfSampleqaType;
-} shdrcast;
 
 typedef struct {
   unsigned short StartAddrOfs, EndAddrOfs, StartLoopAddrOfs, EndLoopAddrOfs,
@@ -150,6 +148,8 @@ PresetZones findByPid(int pid, int bkid);
 PresetZones findPresetZones(int i, int nregions);
 PresetZones findPresetByName(const char *name);
 int findPresetZonesCount(int i);
+void readsf(FILE *f);
+
 enum grntypes {
   StartAddrOfs,
   EndAddrOfs,
