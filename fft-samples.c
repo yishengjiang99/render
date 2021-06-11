@@ -29,20 +29,26 @@
 int main() {
   double sinetable[FFTBINS << 2];
   memcpy(sinetable, stbl, (FFTBINS << 2) * sizeof(double));
-  char *file = "GeneralUserGS.sf2";
-  FILE *fo = fopen("output.riff", "wb");
+  char *file = "FluidR3_GM.sf2";
   readsf(fopen(file, "rb"));
   printf("%d %d", nphdrs, nshdrs);
   complex c[FFTBINS];
   init_ctx();
 
   for (int i = 0; i < nphdrs; i++) {
+    if (phdrs[i].bankId != 0) continue;
+    char fname[1024];
+    sprintf(fname, "./rr/%d_%d_%s.riff", phdrs[i].pid, phdrs[i].bankId,
+            phdrs[i].name);
+    FILE *fo = fopen(fname, "wb");
+
     PresetZones pz = findByPid(phdrs[i].pid, phdrs[i].bankId);
     zone_t *zones = pz.zones;
-    fwrite(&pz.hdr, sizeof(phdr), 1, fo);
+    // fwrite(&pz.hdr, sizeof(phdr), 1, fo);
+    //    fwrite(&pz.npresets, sizeof(int), 1, fo);
 
     for (int j = 0; j < pz.npresets - 1; j++) {
-      fwrite(zones, sizeof(zone_t), 1, fo);
+      // fwrite(zones, sizeof(zone_t), 1, fo);
 
       shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);
       short *attrs = (short *)zones;
@@ -56,6 +62,7 @@ int main() {
       sampleVoice(v, c, fo);
       zones++;
     }
+    fclose(fo);
   }
 
   return 0;

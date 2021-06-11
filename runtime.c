@@ -14,7 +14,8 @@ int get_sf(int channelNumer, int key, int vel) {
   channel_t ch = g_ctx->channels[channelNumer];
   zone_t *zones = ch.pzset.zones;
   int found = 0;
-  for (int i = 0; i < ch.pzset.npresets; i++, zones++) {
+  for (int i = 0; i < ch.pzset.npresets - 1; i++, zones++) {
+    if (zones == NULL) break;
     if (vel > -1 && (zones->VelRange.lo > vel || zones->VelRange.hi < vel))
       continue;
     if (key > -1 && (zones->KeyRange.lo > key || zones->KeyRange.hi < key))
@@ -106,8 +107,9 @@ void loop(voice *v, float *output, channel_t ch) {
       gain = BiQuad(f1, v->lpf) * 1.0;  //	printf("\t %f 	%f\n",gain);
     }
 
-    float mono = gain * powf(10.0, envShift(v->ampvol) / -200.0f);  // * att;
-    *(output + 2 * i) += mono * v->panLeft;
+    float mono = gain * centdblut(envShift(v->ampvol) + v->attenuate) *
+                 ch.midi_volume;  // * att;
+    *(output + 2 * i) += gain;
     *(output + 2 * i + 1) += mono * v->panRight;
 
     v->frac += v->ratio;
@@ -194,11 +196,13 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   v->z = z;
   v->midi = midi;
   v->velocity = vel;
-  v->panLeft =
-      sinf((float)(z->Pan - 500.0f) / 1000.0f * M_2_PI);  // panLeftLUT(z->Pan);
-  v->panRight = 1 - v->panLeft;
-  v->attenuate = powf(10.0f, (v->z->Attenuation + velCB[vel]) / -200.0f);
+  float velgain = powf(10.0, 127.0f / (float)vel * 0.05f);
 
+  v->panLeft = sinf((float)(z->Pan - 500.0f) / 1000.0f * M_2_PI) *
+               velgain;  // panLeftLUT(z->Pan);
+  v->panRight = (1 - v->panLeft) * velgain;
+  v->attenuate = v->z->Attenuation;
+  printf("%hd\n", v->attenuate);
   if (z->FilterFc < 14000) {
     v->lpf = BiQuad_new(LPF, z->FilterQ / 10.0f,
                         powf(2, (float)z->FilterFc / 1200.0f),

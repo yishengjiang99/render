@@ -1,7 +1,7 @@
 #include "libs/biquad.h"
 #include "sf2.h"
 #ifndef output_sampleRate
-#define output_sampleRate 48000
+#define output_sampleRate 44100
 
 #endif
 
