@@ -1,14 +1,17 @@
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 
-#include "gen_ops.h"
+#include "libs/fft.c"
+#include "runtime.c"
 #include "sf2.c"
+#include "stbl.c"
 #define echo(str) fprintf(output, str);
 static FILE *output;
 void printpreset(char *file, int pid, int bankId) {
   PresetZones pz = findByPid(pid, bankId);
+  complex c[4096];
+  complex *it = c;
 
   if (pz.npresets == 0) return;
   fprintf(output,
@@ -16,12 +19,33 @@ void printpreset(char *file, int pid, int bankId) {
           "(%d)</span></summary>",
           pz.hdr.name, pz.hdr.pid);
   fprintf(output, " \n <table border=1>");
+  init_ctx();
 
   zone_t *zones = pz.zones;
   for (int j = 0; j < pz.npresets - 1; j++) {
     shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);
     short *attrs = (short *)zones;
+    voice *v = newVoice(zones, zones->KeyRange.lo, zones->KeyRange.hi, 0);
+    loop(v, g_ctx->outputbuffer, g_ctx->channels[0]);
+    bzero(c, 4096 * sizeof(complex));
+    for (int k = 0; k < 4096; k++) {
+      c[k].real = g_ctx->outputbuffer[k];
+      c[k].imag = 0.0f;
+    }
+    FFT(c, 12, stbl);
+    bit_reverse(c, 12);
+
     fprintf(output, "<tr>");
+    fprintf(output, "<td><a href='#' class='fftbins' real='");
+    for (int i = 0; i < 4096; i++) {
+      fprintf(output, "%f%s", c[i].real, i < 4095 ? "," : "");
+    }
+    fprintf(output, "' img='");
+    for (int i = 0; i < 4096; i++) {
+      fprintf(output, "%f%s", c[i].imag, i < 4095 ? "," : "");
+    }
+    fprintf(output, "'>fftbins</a>");
+
     fprintf(output, "<td>%hu-%hu</td>", zones->VelRange.lo, zones->VelRange.hi);
     fprintf(output, "<td>%hu-%hu</td>", zones->KeyRange.lo, zones->KeyRange.hi);
 
@@ -36,10 +60,7 @@ void printpreset(char *file, int pid, int bankId) {
     fprintf(output, "<td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td>",
             zones->Attenuation, zones->FilterFc, zones->OverrideRootKey,
             zones->CoarseTune, zones->FineTune);
-    char attrstr[60 * 10];
-    for (int i = 0; i < 60; i++) {
-      sprintf(attrstr + i * 10, "%hd,", attrs[i]);
-    }
+
     fprintf(output, "<td><a href='#' class='attlist' attrs='");
     for (int i = 0; i < 60; i++) {
       fprintf(output, "%hd%s", attrs[i], i < 59 ? "," : "");
@@ -70,12 +91,13 @@ int main(int argc, char **argv) {
   echo("</pre>");
   fprintf(output, "<table><tr><td>");
   fprintf(output, "<main>");
-  for (int i = 0; i < nphdrs; i++) {
+  for (int i = 0; i < 55; i++) {
     printpreset(file, phdrs[i].pid, phdrs[i].bankId);
   }
   echo("</td><td valign=top>");
-  echo("<div id=details></div></td></tr></table>");
-  echo("<script>");
+  echo("<canvas></canvas><div id=details></div></td><td></td></tr></table>");
+  echo(" <script type='module'> import {chart} from './chart.js'; ");
+
   FILE *js = fopen("playsample.js", "r");
   char c;
   while (!feof(js)) {

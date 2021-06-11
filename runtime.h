@@ -1,8 +1,14 @@
 #include "libs/biquad.h"
 #include "sf2.h"
-
+#ifndef output_sampleRate
 #define output_sampleRate 48000
+
+#endif
+
+#ifndef dspbuffersize
 #define dspbuffersize 128
+#endif
+
 typedef struct {
   uint32_t att_steps, decay_steps, release_steps;
   unsigned short sustain;
@@ -11,6 +17,7 @@ typedef struct {
 } adsr_t;
 
 typedef struct _voice {
+  int done;
   zone_t *z;
   shdrcast *sample;
   unsigned int start, end, startloop, endloop;
@@ -64,3 +71,4 @@ void noteOff(int i, int midi);
 void render(ctx_t *ctx);
 
 void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx));
+void loop(voice *v, float *output, channel_t ch);

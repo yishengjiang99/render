@@ -194,9 +194,8 @@ PresetZones findPresetZones(int i, int nregions) {
                 short pbagAttr = attrs[pbg_attr_cache_index + i];
 
                 if (i == VelRange || i == KeyRange) {
-                  int irange[2] = {zoneattr[i] & 0x007f,
-                                   zoneattr[i] & 0x7f00 >> 8};
-                  int prange[2] = {pbagAttr & 0x007f, (pbagAttr & 0x7f00) >> 8};
+                  int irange[2] = {zoneattr[i] & 0x007f, zoneattr[i] >> 8};
+                  int prange[2] = {pbagAttr & 0x007f, pbagAttr >> 8};
                   if (prange[0] > irange[1] || prange[1] < irange[0]) {
                     add = 0;
                     break;
@@ -205,7 +204,7 @@ PresetZones findPresetZones(int i, int nregions) {
 
                   if (prange[0] > irange[0]) irange[0] = prange[0];
 
-                  zoneattr[i] = (short)(irange[1] << 8 | irange[0]);
+                  zoneattr[i] = irange[0] | (irange[1] << 8);
                 } else {
                   if (attrs[pbg_attr_cache_index + i]) {
                     zoneattr[i] += attrs[pbg_attr_cache_index + i];
