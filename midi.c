@@ -34,45 +34,27 @@ double tiktoktime() {
 
 #endif
 
-void *cb(void *args) {
-  ctx_t *ctx = (ctx_t *)args;
-
+int main(int argc, char **argv) {
+  ctx_t *ctx = init_ctx();
+  readsf(fopen("GeneralUserGS.sf2", "rb"));
   long elapsed;
   ctx->outputFD = ffp(2, ctx->sampleRate);
-  float interval = 1000000.0f /
-                   ((float)ctx->sampleRate / (float)ctx->samples_per_frame) *
-                   .8f;
 
-  for (int i = 0; i < 130000; i++) {
-    TIC();
+  tml_message *m = tml_load_filename("song.mid");
+  int msec = 0;
+  for (int i = 0; i < 1300010; i++) {
     render(ctx);
 
-    usleep(2111);  // * MSEC);
-  }
-
-  return NULL;
-}
-int main(int argc, char **argv) {
-  tml_message *m = tml_load_filename(argc > 1 ? argv[1] : "song.mid");
-  channel_t *ch;
-  init_ctx();
-  readsf(fopen("GeneralUserGS.sf2", "rb"));
-
-  int msec = 0;
-
-  pthread_t t;
-  pthread_create(&t, NULL, &cb, (void *)g_ctx);
-  ctx_t *ctx = g_ctx;
-  while (m != NULL) {
-    msec += 1;
+    usleep(2650 * 0.7);  // * MSEC);
+    ctx_t *ctx = g_ctx;
+    msec += 2650 * 0.9 / 1000;
     while (m && m->time < msec) {
       switch (m->type) {
         case TML_CONTROL_CHANGE: {
           switch (m->control) {
             case TML_VOLUME_MSB:
-              ch = &(ctx->channels[m->channel]);
-              // ch->midi_volume = m->control_value;
-              // printf("%hu", ch->midi_volume);
+              ctx->channels[m->channel].midi_volume =
+                  (float)m->control_value / 127.0f;
               break;
             default:
 
@@ -106,7 +88,9 @@ int main(int argc, char **argv) {
       }
       m = m->next;
     }
-    usleep(1000);
   }
+
+  return 1;
 }
+
 //}

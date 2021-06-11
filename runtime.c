@@ -31,9 +31,9 @@ int get_sf(int channelNumer, int key, int vel) {
 adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay,
                     short sustain, int sampleRate) {
   adsr_t *env = (adsr_t *)malloc(sizeof(adsr_t));
-  env->att_steps = p2over1200(centAtt) * sampleRate;
-  env->decay_steps = p2over1200(centDecay) * sampleRate;
-  env->release_steps = p2over1200(centRelease) * sampleRate;
+  env->att_steps = powf(2.0f, (float)centAtt / 1200.0f) * sampleRate;
+  env->decay_steps = powf(2.0f, (float)centDecay / 1200.0f) * sampleRate;
+  env->release_steps = powf(2.0f, (float)centRelease / 1200.0f) * sampleRate;
   env->att_rate = -960.0f / env->att_steps;
   env->decay_rate = ((float)1.0f * sustain) / (float)env->decay_steps;
   env->release_rate = (float)960.0f / ((float)env->release_steps);
@@ -125,8 +125,8 @@ void loop(voice *v, float *output, channel_t ch) {
   }
 }
 
-#define debugggg 1
-#ifdef debuggsgg
+#define debugaggg 1
+#ifdef debugggg
 #include <assert.h>
 
 #include "call_ffp.c"
@@ -257,7 +257,7 @@ void render(ctx_t *ctx) {
       if ((*tr)->done) continue;
       if ((*tr)->ampvol->release_steps <= 0) {
         (*tr)->done = 1;
-        //*tr = (*tr)->next;
+        *tr = (*tr)->next;
         g_ctx->refcnt--;
 
       } else {
