@@ -1,7 +1,7 @@
-all: runtime.o midi.o html.o
+all: runtime.o midi.o html.o fft-samples.o
 
-# fft-samples.o: sf2.o fft.o wavetable_oscillator.o runtime.o 
-# 	gcc sf2.o fft.o wavetable_oscillator.o runtime.o fft-samples.c -o fft-samples.o
+fft-samples.o: 
+	gcc libs/fft.c fft-samples.c -o fft-samples.o
 
 midi.o:
 	gcc midi.c -o midi.o
@@ -23,4 +23,4 @@ html.o:
 	gcc html.c -o html.o
 	
 clean:
-	rm *.o
+	rm -rf *.o
