@@ -14,7 +14,7 @@ static inline float p2over1200(float x) {
     return p2over1200LUT[(unsigned short)(x)];
   }
 }
-static float centdbLUT[960];
+static float centdbLUT[962];
 static float centdblut(int x) {
   if (x < 0) x = 0;
   if (x > 960) x = 960;
@@ -23,16 +23,16 @@ static float centdblut(int x) {
 }
 void initLUTs() {
   FILE *f = fopen("luts.c", "w");
-  fprintf(f, "#define LUT 1\n float p2over1200LUT[1200] = {");
-  for (int i = 0; i < 1200.0f; i++) {
-    p2over1200LUT[i] = powf(2.0f, i / 1200.0f);
-    fprintf(f, "%ff,", powf(2.0f, i / 1200.0f));
+  fprintf(f, "#define LUT 1\n float p2over1200LUT[1202] = {");
+  for (int i = 0; i <= 1200; i++) {
+    p2over1200LUT[i] = powf(2.0f, (float)i / 1200.0f);
+    fprintf(f, "%ff,", powf(2.0f, (float)i / 1200.0f));
   }
   fprintf(f, "2.0f};\n");
-  fprintf(f, "double centdbLUT[1441] = {");
-  for (int i = 0; i < 1440; i++) {
-    centdbLUT[i] = powl(10.0l, (double)i / -200.0);
-    fprintf(f, "\n%LFf,", powl(10.0l, (double)i / -200.0));
+  fprintf(f, "float centdbLUT[961] = {");
+  for (int i = 0; i < 960; i++) {
+    centdbLUT[i] = powf(10.0f, (float)i / -200.0);
+    fprintf(f, "\n%ff,", powf(10.0f, (float)i / -200.0));
   }
   fprintf(f, "0.0f};");
 

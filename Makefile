@@ -1,7 +1,7 @@
 all: runtime.o midi.o html.o fft-samples.o
 
 fft-samples.o: 
-	gcc libs/fft.c fft-samples.c -o fft-samples.o
+	gcc fft-samples.c -o fft-samples.o
 
 midi.o:
 	gcc midi.c -o midi.o

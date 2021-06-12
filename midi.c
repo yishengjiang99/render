@@ -8,6 +8,31 @@
 #include "runtime.c"
 #include "sf2.c"
 #include "tml.h"
+#ifndef TICTOK_C
+#define TICTOK_C
+
+#include <time.h>
+
+#define BILLION 1000000000L;
+static struct timespec start, stop;
+static double accum;
+#define TIC() \
+  accum = 0;  \
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
+#define TOK()                                        \
+  if (clock_gettime(CLOCK_MONOTONIC, &stop) == -1) { \
+    perror("clock gettime");                         \
+    exit(EXIT_FAILURE);                              \
+  }
+
+double tiktoktime() {
+  accum = (stop.tv_sec - start.tv_sec) * BILLION;
+  accum += (stop.tv_nsec - start.tv_nsec);
+  return accum;
+}
+
+#endif
 
 void *cb(void *args) {
   ctx_t *ctx = (ctx_t *)args;
@@ -20,7 +45,7 @@ void *cb(void *args) {
   for (int i = 0; i < 130000; i++) {
     render(ctx);
 
-    usleep(interval * 0.8f);  // * MSEC);
+    usleep(interval - tiktoktime() / 1000.0f);  // * MSEC);
   }
 
   return NULL;

@@ -20,10 +20,19 @@ add_executable(
   sf2test
   tests/sf2.test.cc
 )
+add_executable(
+  rendertest
+  tests/render.test.cc
+)
 target_link_libraries(
   sf2test
+  gtest_main
+)
+target_link_libraries(
+  rendertest
   gtest_main
 )
 
 include(GoogleTest)
 gtest_discover_tests(sf2test)
+gtest_discover_tests(rendertest)

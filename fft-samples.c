@@ -4,14 +4,14 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "libs/fft.h"
-#include "libs/wavetable_oscillator.h"
-#define output_sampleRate 480000
-#define dspbuffersize 256
+#include "libs/fft.c"
+#include "libs/wavetable_oscillator.c"
+#define output_sampleRate 4096
+#define dspbuffersize 4096
+#include "call_ffp.c"
 #include "runtime.c"
-#include "sf2.c"
-#include "stbl.c"
-#define FFTBINS 256
+
+#define FFTBINS 4096
 #define sampleVoice(v, c, fo)                            \
   {                                                      \
     bzero(g_ctx->outputbuffer, sizeof(float) * FFTBINS); \
@@ -26,44 +26,137 @@
     fflush(fo);                                          \
   }
 
-int main() {
-  double sinetable[FFTBINS << 2];
-  memcpy(sinetable, stbl, (FFTBINS << 2) * sizeof(double));
-  char *file = "FluidR3_GM.sf2";
-  readsf(fopen(file, "rb"));
-  printf("%d %d", nphdrs, nshdrs);
-  complex c[FFTBINS];
-  init_ctx();
+void render_and_fft(complex* c, double* stbl, float* destination) {
+  bzero(c, sizeof(complex) * 2 * FFTBINS);
 
-  for (int i = 0; i < nphdrs; i++) {
-    if (phdrs[i].bankId != 0) continue;
-    char fname[1024];
-    sprintf(fname, "./rr/%d_%d_%s.riff", phdrs[i].pid, phdrs[i].bankId,
-            phdrs[i].name);
-    FILE *fo = fopen(fname, "wb");
+  render(g_ctx);
+  for (int i = 0; i < FFTBINS; i++) {
+    c[i].real = g_ctx->outputbuffer[i * 2];
+    c[i].imag = 0.0f;
+  }
+  FFT(c, log2(FFTBINS), stbl);
+  bit_reverse(c, log2(FFTBINS));
+  for (int i = 0; i < FFTBINS; i++) {
+    // printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
 
-    PresetZones pz = findByPid(phdrs[i].pid, phdrs[i].bankId);
-    zone_t *zones = pz.zones;
-    // fwrite(&pz.hdr, sizeof(phdr), 1, fo);
-    //    fwrite(&pz.npresets, sizeof(int), 1, fo);
-
-    for (int j = 0; j < pz.npresets - 1; j++) {
-      // fwrite(zones, sizeof(zone_t), 1, fo);
-
-      shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);
-      short *attrs = (short *)zones;
-      voice *v = newVoice(zones, zones->KeyRange.lo, zones->VelRange.hi, 0);
-
-      sampleVoice(v, c, fo);
-
-      // set vol envelope to peak
-      v->ampvol->att_steps = 50;
-      v->ampvol->db_attenuate = 1;
-      sampleVoice(v, c, fo);
-      zones++;
+    if (i > 8 && i < FFTBINS / 2) {
+      c[i].real = 0.0f;
+      c[i].imag = 0.0f;
     }
-    fclose(fo);
+    if (i > FFTBINS / 2 + 8) {
+      c[i].real = 0.0f;
+      c[i].imag = 0.0f;
+    }
   }
 
+  bit_reverse(c, log2(FFTBINS));
+  iFFT(c, log2(FFTBINS), stbl);
+  for (int i = 0; i < FFTBINS; i++) {
+    /// printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
+    destination[i] = (float)c[i].real;
+  }
+}
+int main() {
+  init_oscillators();
+  double sinetable[FFTBINS << 2];
+  memcpy(sinetable, stbl, (FFTBINS << 2) * sizeof(double));
+  char* file = "FluidR3_GM.sf2";
+  readsf(fopen(file, "rb"));
+  complex c[FFTBINS];
+  init_ctx();
+  setProgram(0, 0);
+  int vel = 55;
+  int keyPressed = 1;
+  int tableIndex = 0;
+  voice *v1, *v2;
+  FILE* o = ffp(2, 48000);
+
+  for (int midi = 21; midi < 90; midi += 10) {
+    g_ctx->channels[0].voices = NULL;
+    noteOn(0, midi, vel, 0);
+    voice* v1 = g_ctx->channels[0].voices;
+    if (v1->next) v2 = v1->next;
+    shdrcast* sh = (shdrcast*)(shdrs + v1->z->SampleId);
+    adsr_t* env = v1->ampvol;
+    float decay_sec = powf(2.0f, v1->z->VolEnvDecay / 1200.0f);
+    float release_sec = powf(2.0f, v1->z->VolEnvRelease / 1200.0f);
+    float sustain = v1->z->VolEnvSustain / 1000.0f;
+    float att_sec = powf(2.0f, v1->z->VolEnvAttack / 1200.0f);
+
+    float mod_att = powf(2.0f, v1->z->ModEnvAttack / 1200.0f);
+    float mod_release = powf(2.0f, v1->z->ModEnvRelease / 1200.0f);
+    float modDEc = powf(2.0f, v1->z->ModEnvDecay / 1200.0f);
+    float modf_sustain = v1->z->ModEnvSustain / 1000.0f;
+
+    render_and_fft(c, stbl, sampleTableRef(tableIndex++));
+    while (env->att_steps > 0) envShift(env);
+    render_and_fft(c, stbl, sampleTableRef(tableIndex++));
+
+    env->db_attenuate = 0;
+    env->release_rate = 0;
+    if (v1->z->ModEnv2FilterFc) {
+      v1->lpf = BiQuad_new(LPF, v1->z->FilterQ / 10.0f,
+                           p2over1200(v1->z->FilterFc + v1->z->ModEnv2FilterFc),
+                           g_ctx->sampleRate, 1.0);
+    }
+    if (v1->z->ModEnv2Pitch) {
+      v1->ratio =
+          calcratio(v1->z, sh, v1->midi) * p2over1200(v1->z->ModEnv2Pitch);
+    }
+    render_and_fft(c, stbl, sampleTableRef(tableIndex++));
+    if (v1->z->ModEnv2FilterFc) {
+      v1->lpf = BiQuad_new(LPF, v1->z->FilterQ / 10.0f,
+                           p2over1200(v1->z->FilterFc + v1->z->ModEnv2FilterFc),
+                           g_ctx->sampleRate, 1.0);
+    }
+    if (v1->z->ModEnv2Pitch) {
+      v1->ratio =
+          calcratio(v1->z, sh, v1->midi) * p2over1200(v1->z->ModEnv2Pitch);
+    }
+
+    render_and_fft(c, stbl, sampleTableRef(tableIndex++));
+
+    for (int k = 0; k < 9; k += 3) {
+      int keyPressed = 1;
+      int t = 0;
+      set_midi(0, midi + k);
+      oscillator->fadeDim1 = 0.f;
+      oscillator->fadeDim1Increment = 1.0f / (SAMPLE_RATE * att_sec);
+      oscillator->wave000 = &sample_tables[0];
+      oscillator->wave001 = &sample_tables[1];
+      while (oscillator->fadeDim1 < 1.0f) {
+        t += oscillator->samples_per_block;
+
+        wavetable_1dimensional_oscillator(oscillator);
+        fwrite(oscillator->output_ptr, sizeof(float),
+               oscillator->samples_per_block, o);
+      }
+
+      oscillator->fadeDim1 = 0.f;
+      oscillator->fadeDim1Increment =
+          1.0f * sustain / (SAMPLE_RATE * decay_sec);
+      oscillator->wave000 = &sample_tables[1];
+      oscillator->wave001 = silence;
+      while (keyPressed == 1 && oscillator->fadeDim1 < 1.0f) {
+        wavetable_1dimensional_oscillator(oscillator);
+        t += oscillator->samples_per_block;
+        fwrite(oscillator->output_ptr, sizeof(float),
+               oscillator->samples_per_block, o);
+        if (oscillator->fadeDim1 > .1f) keyPressed = 0;
+      }
+      noteOff(0, midi);
+
+      oscillator->fadeDim1Increment = 1.0f / (SAMPLE_RATE * release_sec);
+      while (oscillator->fadeDim1 < 1.0f && t < 48000) {
+        wavetable_1dimensional_oscillator(oscillator);
+        t += oscillator->samples_per_block;
+
+        fwrite(oscillator->output_ptr, sizeof(float),
+               oscillator->samples_per_block, o);
+        printf("%f", oscillator->fadeDim1);
+      }
+    }
+  }
+  pclose(o);
   return 0;
 }

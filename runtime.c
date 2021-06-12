@@ -198,8 +198,7 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   v->velocity = vel;
   float velgain = powf(10.0, 127.0f / (float)vel * 0.05f);
 
-  v->panLeft = sinf((float)(z->Pan - 500.0f) / 1000.0f * M_2_PI) *
-               velgain;  // panLeftLUT(z->Pan);
+  v->panLeft = panLeftLUT(z->Pan) * velgain;
   v->panRight = (1 - v->panLeft) * velgain;
   v->attenuate = v->z->Attenuation;
   printf("%hd\n", v->attenuate);
@@ -236,6 +235,7 @@ void setProgram(int channelNumber, int presetId) {
 }
 void noteOn(int channelNumber, int midi, int vel, unsigned long when) {
   //	assert(g_ctx->channels[channelNumber].pzset.npresets > 0);
+
   get_sf(channelNumber, midi, vel);
 }
 
@@ -260,9 +260,11 @@ void render(ctx_t *ctx) {
     for (voice **tr = &ch.voices; *tr; tr = &(*tr)->next) {
       if ((*tr)->done) continue;
       if ((*tr)->ampvol->release_steps <= 0) {
+        voice *donev = *tr;
         (*tr)->done = 1;
         *tr = (*tr)->next;
         g_ctx->refcnt--;
+        free(donev);
 
       } else {
         loop(*tr, g_ctx->outputbuffer, ch);
