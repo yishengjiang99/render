@@ -36,16 +36,16 @@ double tiktoktime() {
 
 void *cb(void *args) {
   ctx_t *ctx = (ctx_t *)args;
-
+  ctx->outputFD = NULL;
   long elapsed;
-  ctx->outputFD = ffp(2, ctx->sampleRate);
+  // ctx->outputFD = stdout;
   float interval =
       1000000.0f / ((float)ctx->sampleRate / (float)ctx->samples_per_frame);
 
-  for (int i = 0; i < 130000; i++) {
+  for (int i = 0; i < 5 * ctx->sampleRate; i++) {
     render(ctx);
 
-    usleep(interval - tiktoktime() / 1000.0f);  // * MSEC);
+    usleep(interval - (float)(tiktoktime() / 1000.0f));  // * MSEC);
   }
 
   return NULL;
@@ -70,8 +70,7 @@ int main(int argc, char **argv) {
           switch (m->control) {
             case TML_VOLUME_MSB:
               ch = &(ctx->channels[m->channel]);
-              ch->midi_volume = (float)m->control_value / 127.0f + .9f;
-              // printf("%hu", ch->midi_volume);
+              ch->midi_volume = (float)m->control_value / 127.0f;
               break;
             default:
 
@@ -93,7 +92,7 @@ int main(int argc, char **argv) {
             noteOff((int)m->channel, (int)m->key);
           } else {
             noteOn((int)m->channel, (int)m->key, (int)m->velocity, m->time);
-            printf("\n%d**\n", g_ctx->refcnt);
+            //  printf("\n%d**\n", g_ctx->refcnt);
           }
 
           break;

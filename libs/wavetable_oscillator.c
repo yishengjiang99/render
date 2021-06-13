@@ -347,8 +347,6 @@ wavetable_oscillator_data *init_oscillators() {
 
     oscillator[i].wave000 = sinewave;
     oscillator[i].wave001 = squarewave;
-    oscillator[i].wave010 = sinewave_sharp;
-    oscillator[i].wave011 = silence;
   }
 
   return oscillator;

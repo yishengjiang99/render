@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
 project(my_project)
-
 # GoogleTest requires at least C++11
 set(CMAKE_CXX_STANDARD 11)
 
@@ -14,7 +13,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 enable_testing()
 
-
+set(DCMAKE_TOOLCHAIN_FILE /usr/local/lib/vcpkg/scripts/buildsystems/vcpkg.cmake)
 
 add_executable(
   sf2test
@@ -34,5 +33,4 @@ target_link_libraries(
 )
 
 include(GoogleTest)
-gtest_discover_tests(sf2test)
 gtest_discover_tests(rendertest)

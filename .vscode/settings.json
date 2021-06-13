@@ -109,7 +109,36 @@
 		"biquad.c": "cpp",
 		"biquad.h": "c",
 		"call_ffp.c": "cpp",
-		"gen_ops.h": "c"
+		"gen_ops.h": "c",
+		"ffitarget.h": "c",
+		"hash_map": "cpp",
+		"macros.h": "c"
 	},
-	"C_Cpp.errorSquiggles": "Enabled"
+	"C_Cpp.errorSquiggles": "Enabled",
+	"editor.tokenColorCustomizations": {
+		"textMateRules": [
+			{
+				"scope": "googletest.failed",
+				"settings": {
+					"foreground": "#f00"
+				}
+			},
+			{
+				"scope": "googletest.passed",
+				"settings": {
+					"foreground": "#0f0"
+				}
+			},
+			{
+				"scope": "googletest.run",
+				"settings": {
+					"foreground": "#0f0"
+				}
+			}
+		]
+	},
+	"gtest-adapter.debugConfig": [
+		"(lldb) Launch",
+		"gcc - Build and debug active file"
+	]
 }

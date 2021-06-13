@@ -6,7 +6,7 @@
 
 #include "libs/biquad.c"
 #include "lut.c"
-#include "sf2.c"
+
 #define minf(a, b) a < b ? a : b;
 
 //(presetZones[i].zones[j].KeyRange & 0x7f00) >> 8)
@@ -29,9 +29,13 @@ int get_sf(int channelNumer, int key, int vel) {
   return found;
 }
 
-adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay,
-                    short sustain, int sampleRate) {
+adsr_t *newEnvelope(short centDelay, short centAtt, short centHold,
+                    short centRelease, short centDecay, short sustain,
+                    int sampleRate) {
   adsr_t *env = (adsr_t *)malloc(sizeof(adsr_t));
+  env->delay_steps = powf(2.0f, (float)centDelay / 1200.0f) * sampleRate;
+  env->hold_steps = powf(2.0f, (float)centHold / 1200.0f) * sampleRate;
+
   env->att_steps = powf(2.0f, (float)centAtt / 1200.0f) * sampleRate;
   env->decay_steps = powf(2.0f, (float)centDecay / 1200.0f) * sampleRate;
   env->release_steps = powf(2.0f, (float)centRelease / 1200.0f) * sampleRate;
@@ -43,9 +47,13 @@ adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay,
   return env;
 }
 float envShift(adsr_t *env) {
-  if (env->att_steps > 0) {
+  if (env->delay_steps-- > 0) {
+  }
+
+  else if (env->att_steps > 0) {
     env->att_steps--;
     env->db_attenuate += env->att_rate;
+  } else if (env->hold_steps-- > 0) {
   } else if (env->decay_steps > 0) {
     env->decay_steps--;
     env->release_steps--;
@@ -83,16 +91,28 @@ static inline float hermite4(float frac_pos, float xm1, float x0, float x1,
 
   return ((((a * frac_pos) - b_neg) * frac_pos + c) * frac_pos + x0);
 }
-
+void insertV(voice **start, voice *nv) {
+  voice **tr = start;
+  nv->done = 0;
+  while (*tr) tr = &((*tr)->next);
+  nv->next = *tr;
+  *tr = nv;
+}
+float calcratio(zone_t *z, shdrcast *sh, int midi) {
+  short rt = z->OverrideRootKey > -1 ? z->OverrideRootKey : sh->originalPitch;
+  float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
+  float octaveDivv = (float)midi * 100 - sampleTone;
+  return powf(2.0f, octaveDivv / 1200.0f) * (float)sh->sampleRate /
+         g_ctx->sampleRate;
+}
 #define trval (*tr)
 #define trshift &((*tr)->next)
 void loop(voice *v, float *output, channel_t ch) {
   uint32_t loopLength = v->endloop - v->startloop;
 
-  // fprintf(stderr, "\n%d - %d - %d - %f", v->ampvol->att_steps,
-  //         v->ampvol->decay_steps, v->ampvol->release_steps,
-  //         v->ampvol->db_attenuate);
-  float att = v->attenuate * ch.midi_volume;
+  float volume_gain = v->attenuate * ch.midi_volume;
+  float g_left = v->panLeft * volume_gain;
+  float g_right = v->panRight * volume_gain;
   for (int i = 0; i < g_ctx->samples_per_frame; i++) {
     float fm1 = *(sdta + v->pos - 1);
     float f1 = *(sdta + v->pos);
@@ -102,15 +122,16 @@ void loop(voice *v, float *output, channel_t ch) {
     float o1 = *(output + 2 * i + 1);
     float o2 = *(output + 2 * i);
     float gain = hermite4(v->frac, fm1, f1, f2, f3);
-    // f1 + (f2 - f1) * v->frac;
-    if (v->lpf != NULL) {
-      gain = BiQuad(f1, v->lpf) * 1.0;  //	printf("\t %f 	%f\n",gain);
-    }
 
-    float mono = gain * centdblut(envShift(v->ampvol) + v->attenuate) *
-                 ch.midi_volume;  // * att;
-    *(output + 2 * i) += gain;
-    *(output + 2 * i + 1) += mono * v->panRight;
+    // gain =
+    //     gain * centdblut(envShift(v->ampvol));  //* ch.midi_volume;  // *
+    //     att;
+
+    if (v->lpf != NULL) {
+      gain = BiQuad(f1, v->lpf);  // 1.0;  //	printf("\t %f 	%f\n",gain);
+    }
+    *(output + 2 * i) += gain * v->panRight;
+    *(output + 2 * i + 1) += gain * v->panRight;
 
     v->frac += v->ratio;
     while (v->frac >= 1.0f) {
@@ -127,49 +148,6 @@ void loop(voice *v, float *output, channel_t ch) {
   }
 }
 
-#define debugaggg 1
-#ifdef debugggg
-#include <assert.h>
-
-#include "call_ffp.c"
-#include "sf2.c"
-void cb(ctx_t *ctx) {
-  for (int i = 0; i < 128; i++) printf("\n%f", ctx->outputbuffer[0]);
-}
-int main() {
-  init_ctx();
-  FILE *f = fopen("GeneralUserGS.sf2", "rb");
-  if (!f) perror("oaffdf");
-
-  readsf(f);
-
-  g_ctx->outputFD = ffp(2, 48000);
-  g_ctx->mastVol = 1.0f;
-
-  setProgram(0, 0);
-  for (int m = 33; m < 78; m++) {
-    noteOn(0, m, 6 * 10, 0);
-
-    render_fordr(g_ctx, 1, NULL);
-    noteOff(0, m);
-    render_fordr(g_ctx, 3, NULL);
-  }
-}
-#endif
-void insertV(voice **start, voice *nv) {
-  voice **tr = start;
-  nv->done = 0;
-  while (*tr) tr = &((*tr)->next);
-  nv->next = *tr;
-  *tr = nv;
-}
-float calcratio(zone_t *z, shdrcast *sh, int midi) {
-  short rt = z->OverrideRootKey > -1 ? z->OverrideRootKey : sh->originalPitch;
-  float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
-  float octaveDivv = (float)midi * 100 - sampleTone;
-  return powf(2.0f, octaveDivv / 1200.0f) * (float)sh->sampleRate /
-         g_ctx->sampleRate;
-}
 voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   voice *v = (voice *)malloc(sizeof(voice));
   v->next = NULL;
@@ -188,20 +166,28 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   v->startloop = sh->startloop +
                  (unsigned short)(z->StartLoopAddrCoarseOfs & 0x7f << 15) +
                  (unsigned short)(z->StartLoopAddrOfs & 0x7f);
-  v->ampvol = newEnvelope(z->VolEnvAttack, z->VolEnvRelease, z->VolEnvDecay,
-                          z->VolEnvSustain, 48000);
+  v->ampvol = newEnvelope(z->VolEnvDelay, z->VolEnvAttack, z->VolEnvHold,
+                          z->VolEnvRelease, z->VolEnvDecay, z->VolEnvSustain,
+                          g_ctx->sampleRate);
+
+  v->moddvol = newEnvelope(z->ModEnvDelay, z->ModEnvAttack, z->ModEnvHold,
+                           z->ModEnvRelease, z->ModEnvDecay, z->ModEnvSustain,
+                           g_ctx->sampleRate);
   v->ratio = calcratio(z, sh, midi);
   v->pos = v->start;
   v->frac = 0.0f;
   v->z = z;
   v->midi = midi;
   v->velocity = vel;
-  float velgain = powf(10.0, 127.0f / (float)vel * 0.05f);
+  float velratio = (127.0f / (float)vel) * (127.0f / (float)vel);
+  float velgain =
+      powf(10.0, (velratio * velratio - z->Attenuation / 10) * 0.05f);
 
-  v->panLeft = panLeftLUT(z->Pan) * velgain;
-  v->panRight = (1 - v->panLeft) * velgain;
-  v->attenuate = v->z->Attenuation;
-  printf("%hd\n", v->attenuate);
+  v->panLeft = panLeftLUT(z->Pan);
+  v->panRight = (1 - v->panLeft);
+  v->attenuate =
+      powf(10.0, (velratio * velratio - z->Attenuation / 10) * 0.05f);
+
   if (z->FilterFc < 14000) {
     v->lpf = BiQuad_new(LPF, z->FilterQ / 10.0f,
                         powf(2, (float)z->FilterFc / 1200.0f),
@@ -235,7 +221,7 @@ void setProgram(int channelNumber, int presetId) {
 }
 void noteOn(int channelNumber, int midi, int vel, unsigned long when) {
   //	assert(g_ctx->channels[channelNumber].pzset.npresets > 0);
-
+  // g_ctx->channels[channelNumber].voices = NULL;
   get_sf(channelNumber, midi, vel);
 }
 
@@ -254,7 +240,7 @@ void noteOff(int i, int midi) {
 void render(ctx_t *ctx) {
   bzero(ctx->outputbuffer, sizeof(float) * ctx->samples_per_frame * 2);
   int vs = 0;
-  for (int i = 0; i < 16; i++) {
+  for (int i = 0; i < 1; i++) {
     channel_t ch = g_ctx->channels[i];
     if (!ch.voices) continue;
     for (voice **tr = &ch.voices; *tr; tr = &(*tr)->next) {
@@ -300,3 +286,32 @@ void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx)) {
     duration -= 0.00266f;
   }
 }
+#define debug 1
+#ifdef debugggg
+#include <assert.h>
+
+#include "call_ffp.c"
+#include "sf2.c"
+void cb(ctx_t *ctx) {
+  for (int i = 0; i < 128; i++) printf("\n%f", ctx->outputbuffer[0]);
+}
+int main() {
+  init_ctx();
+  FILE *f = fopen("GeneralUserGS.sf2", "rb");
+  if (!f) perror("oaffdf");
+
+  readsf(f);
+
+  g_ctx->outputFD = ffp(2, 48000);
+  g_ctx->mastVol = 1.0f;
+
+  setProgram(0, 66);
+  for (int m = 33; m < 78; m++) {
+    noteOn(0, m, 6 * 10, 0);
+
+    render_fordr(g_ctx, .5, NULL);
+    noteOff(0, m);
+    render_fordr(g_ctx, .5, NULL);
+  }
+}
+#endif

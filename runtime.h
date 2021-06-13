@@ -10,14 +10,15 @@
 #endif
 
 typedef struct {
-  uint32_t att_steps, decay_steps, release_steps;
+  uint32_t delay_steps, att_steps, hold_steps, decay_steps, release_steps;
   unsigned short sustain;
   float db_attenuate;
   float att_rate, decay_rate, release_rate;
 } adsr_t;
+typedef enum { voice_rising, voice_decay, voice_release, voice_gc } voice_state;
 
 typedef struct _voice {
-  int done;
+  voice_state done;
   zone_t *z;
   shdrcast *sample;
   unsigned int start, end, startloop, endloop;
@@ -36,8 +37,8 @@ typedef struct _voice {
 
 typedef struct {
   int program_number;
-  unsigned short midi_volume;
-  unsigned short midi_pan;
+  float midi_volume;
+  float midi_pan;
   PresetZones pzset;
   voice *voices;
 } channel_t;
@@ -58,8 +59,9 @@ void applyZone(zone_t *z, int midi, int vel, int cid);
 static ctx_t *g_ctx;
 int get_sf(int channelNumer, int key, int vel);
 
-adsr_t *newEnvelope(short centAtt, short centRelease, short centDecay,
-                    short sustain, int sampleRate);
+adsr_t *newEnvelope(short centDelay, short centAtt, short centHold,
+                    short centRelease, short centDecay, short sustain,
+                    int sampleRate);
 float envShift(adsr_t *env);
 void adsrRelease(adsr_t *env);
 

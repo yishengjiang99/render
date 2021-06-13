@@ -14,42 +14,45 @@
 //
 //  This typedef in wavetable_oscillator.h
 //
-typedef struct
-{
-	float *output_ptr;
-	int samples_per_block;
+typedef struct {
+  float *output_ptr;
+  int samples_per_block;
 
-	uint32_t phase;
-	int32_t phaseIncrement;
-	int32_t frequencyIncrement;
+  uint32_t phase;
+  int32_t phaseIncrement;
+  int32_t frequencyIncrement;
 
-	unsigned int num_fractionalBits;
-	uint32_t mask_fractionalBits; // 2^num_fractionalBits - 1
-	unsigned int mask_waveIndex;
-	float scaler_fractionalBits; // 2^(-num_fractionalBits)
+  unsigned int num_fractionalBits;
+  uint32_t mask_fractionalBits;  // 2^num_fractionalBits - 1
+  unsigned int mask_waveIndex;
+  float scaler_fractionalBits;  // 2^(-num_fractionalBits)
 
-	float fadeDim1;
-	float fadeDim1Increment;
-	float fadeDim2;
-	float fadeDim2Increment;
-	float fadeDim3;
-	float fadeDim3Increment;
+  float fadeDim1;
+  float fadeDim1Increment;
+  float fadeDim2;
+  float fadeDim2Increment;
+  float fadeDim3;
+  float fadeDim3Increment;
 
-	float *wave000;
-	float *wave001;
-	float *wave010;
-	float *wave011;
-	float *wave100;
-	float *wave101;
-	float *wave110;
-	float *wave111;
+  float *wave000;
+  float *wave001;
+  float *wave010;
+  float *wave011;
+  float *wave100;
+  float *wave101;
+  float *wave110;
+  float *wave111;
 } wavetable_oscillator_data;
 
 wavetable_oscillator_data *init_oscillators();
-void wavetable_0dimensional_oscillator(wavetable_oscillator_data *this_oscillator);
-void wavetable_1dimensional_oscillator(wavetable_oscillator_data *this_oscillator);
-void wavetable_2dimensional_oscillator(wavetable_oscillator_data *this_oscillator);
-void wavetable_3dimensional_oscillator(wavetable_oscillator_data *this_oscillator);
+void wavetable_0dimensional_oscillator(
+    wavetable_oscillator_data *this_oscillator);
+void wavetable_1dimensional_oscillator(
+    wavetable_oscillator_data *this_oscillator);
+void wavetable_2dimensional_oscillator(
+    wavetable_oscillator_data *this_oscillator);
+void wavetable_3dimensional_oscillator(
+    wavetable_oscillator_data *this_oscillator);
 int wavetable_struct_size();
 
 void set_midi(wavetable_oscillator_data *osc, uint8_t midi);
