@@ -2,10 +2,9 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "libs/fft.c"
-#include "lut.c"
-#include "runtime.c"
-#include "sf2.c"
+#include "libs/fft.h"
+#include "runtime.h"
+#include "sf2.h"
 #include "stbl.c"
 
 FILE *output, *sf2;

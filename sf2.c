@@ -7,31 +7,41 @@
 #include <stdlib.h>
 #include <string.h>
 
-void readsf(FILE *fd) {
+void read_sdta(FILE *fd) {
+  if (sdtastart) {
+    fseek(fd, sdtastart, SEEK_SET);
+    data = (short *)malloc(nsamples * sizeof(short));
+    sdta = (float *)malloc(nsamples * sizeof(float));
+    float *trace = sdta;
+
+    fread(data, sizeof(short), nsamples, fd);
+    for (int i = 0; i < nsamples; i++) {
+      *trace++ = *(data + i) / 32767.0f;
+    }
+  }
+}
+void sf2Info(FILE *fd) {
   sheader_t *header = (sheader_t *)malloc(sizeof(sheader_t));
   header2_t *h2 = (header2_t *)malloc(sizeof(header2_t));
   fread(header, sizeof(sheader_t), 1, fd);
   fread(h2, sizeof(header2_t), 1, fd);
-  printf("\n%.4s %u", h2->name, h2->size);
   info = malloc(h2->size);
   fread(info, h2->size, 1, fd);
   fread(h2, sizeof(header2_t), 1, fd);
-  printf("\n%.4s %u", h2->name, h2->size);
-  data = (short *)malloc(h2->size / 2 * sizeof(short));
-  sdta = (float *)malloc(h2->size / 2 * sizeof(float));
-  float *trace = sdta;
+
   nsamples = h2->size / sizeof(short);
   sdtastart = ftell(fd);
-  printf("\n\t %ld", ftell(fd));
-  fread(data, sizeof(short), nsamples, fd);
 
-  for (int i = 0; i < nsamples; i++) {
-    *trace++ = *(data + i) / 32767.0f;
-  }
+  fseek(fd, h2->size, SEEK_CUR);
+
+  // fread(data, sizeof(short), nsamples, fd);
+
+  // for (int i = 0; i < nsamples; i++) {
+  //   *trace++ = *(data + i) / 32767.0f;
+  // }
 
 #define readSection(section)                  \
   fread(sh, sizeof(section_header), 1, fd);   \
-  printf("%.4s:%u\n", sh->name, sh->size);    \
   n##section##s = sh->size / sizeof(section); \
   section##s = (section *)malloc(sh->size);   \
   fread(section##s, sizeof(section), sh->size / sizeof(section), fd);
@@ -39,8 +49,6 @@ void readsf(FILE *fd) {
   section_header *sh = (section_header *)malloc(sizeof(section_header));
 
   fread(h2, sizeof(header2_t), 1, fd);
-  printf("%.4s %u \n", h2->name, h2->size);
-
   readSection(phdr);
 
   readSection(pbag);
@@ -55,6 +63,16 @@ void readsf(FILE *fd) {
   for (int i = 0; i < nphdrs; i++) {
     *(presetZones + i) = findPresetZones(i, findPresetZonesCount(i));
   }
+}
+
+void readsf(FILE *fd) {
+  sf2Info(fd);
+  read_sdta(fd);
+}
+
+void read_sf2_mem(void *mem, int n) {
+  FILE *fd = fmemopen(mem, n, "rb");
+  readsf(fd);
 }
 PresetZones findByPid(int pid, int bkid) {
   for (unsigned short i = 0; i < nphdrs - 1; i++) {

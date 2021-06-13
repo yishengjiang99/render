@@ -112,7 +112,8 @@
 		"gen_ops.h": "c",
 		"ffitarget.h": "c",
 		"hash_map": "cpp",
-		"macros.h": "c"
+		"macros.h": "c",
+		"luts.h": "c"
 	},
 	"C_Cpp.errorSquiggles": "Enabled",
 	"editor.tokenColorCustomizations": {

@@ -1,3 +1,6 @@
+#ifndef RUNTIME_H
+#define RUNTIME_H
+
 #include "libs/biquad.h"
 #include "sf2.h"
 #ifndef output_sampleRate
@@ -74,3 +77,11 @@ void render(ctx_t *ctx);
 
 void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx));
 void loop(voice *v, float *output, channel_t ch);
+float p2over1200(float x);
+float centdblut(float x);
+float midiCBlut(int midi);
+float midiCBlut(int midi);
+float panLeftLUT(short Pan);
+float centtone2freq(unsigned short ct);
+float centdblut(float x);
+#endif

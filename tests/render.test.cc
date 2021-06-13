@@ -2,6 +2,7 @@
 #include <math.h>
 
 extern "C" {
+#include "../libs/biquad.c"
 #include "../runtime.c"
 #include "../sf2.c"
 }
@@ -27,7 +28,4 @@ TEST_F(Ff, newVoice) {
   ASSERT_NE(v, nullptr);
   ASSERT_NE(v->lpf, nullptr);
   ASSERT_LE(z.VelRange.lo, z.VelRange.hi);
-  for (zone_t* z = findByPid(60, 0).zones; z != NULL; z++) {
-    ASSERT_NO_THROW(newVoice(z, z->KeyRange.hi - 1, z->VelRange.hi - 1, 0));
-  }
 }

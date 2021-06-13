@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "stbl.c"
 #define NUM_OSCILLATORS 16
 #define SAMPLE_BLOCKSIZE 4096
 
@@ -358,4 +357,12 @@ void set_midi(int channel, int midiPitch) {
   float frequency = 440.0f * powf(2.0f, (float)(midiPitch - 69) / 12.0f);
   oscillator[channel].phaseIncrement =
       (int32_t)(frequency / SAMPLE_RATE * BIT32_NORMALIZATION + .5f);
+}
+
+void reset_oscillator(int channel) {
+  oscillator[channel].fadeDim1 = 0;
+  oscillator[channel].fadeDim2 = 0;
+  oscillator[channel].phase = 0;
+  oscillator[channel].fadeDim1Increment = 0;
+  oscillator[channel].fadeDim2Increment = 0;
 }

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <math.h>
 extern "C" {
+#include "../libs/biquad.c"
 #include "../runtime.c"
 #include "../sf2.c"
 #include "../tictok.c"

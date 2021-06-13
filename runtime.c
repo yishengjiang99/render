@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "libs/biquad.c"
-#include "lut.c"
+#include "libs/biquad.h"
+#include "luts.c"
+#include "sf2.h"
 
 #define minf(a, b) a < b ? a : b;
 
@@ -81,8 +82,7 @@ void adsrRelease(adsr_t *env) {
   env->att_steps = 0;
   env->release_steps = env->db_attenuate / 1000.0f * (env->release_steps);
 }
-static inline float hermite4(float frac_pos, float xm1, float x0, float x1,
-                             float x2) {
+float hermite4(float frac_pos, float xm1, float x0, float x1, float x2) {
   const float c = (x1 - xm1) * 0.5f;
   const float v = x0 - x1;
   const float w = c + v;
@@ -93,7 +93,7 @@ static inline float hermite4(float frac_pos, float xm1, float x0, float x1,
 }
 void insertV(voice **start, voice *nv) {
   voice **tr = start;
-  nv->done = 0;
+  nv->done = voice_rising;
   while (*tr) tr = &((*tr)->next);
   nv->next = *tr;
   *tr = nv;
@@ -113,7 +113,16 @@ void loop(voice *v, float *output, channel_t ch) {
   float volume_gain = v->attenuate * ch.midi_volume;
   float g_left = v->panLeft * volume_gain;
   float g_right = v->panRight * volume_gain;
+  float modEG = envShift(v->moddvol) / -960.0f;
+  // v->lpf = BiQuad_new(
+  //     LPF, v->z->FilterQ / 10.0f,
+  //     powf(2,
+  //          (float)(v->z->FilterFc + modEG * v->z->ModEnv2FilterFc) /
+  //          1200.0f),
+  //     g_ctx->sampleRate, 1.0);
   for (int i = 0; i < g_ctx->samples_per_frame; i++) {
+    modEG = envShift(v->moddvol) / -960.0f;
+
     float fm1 = *(sdta + v->pos - 1);
     float f1 = *(sdta + v->pos);
     float f2 = *(sdta + v->pos + 1);
@@ -122,18 +131,15 @@ void loop(voice *v, float *output, channel_t ch) {
     float o1 = *(output + 2 * i + 1);
     float o2 = *(output + 2 * i);
     float gain = hermite4(v->frac, fm1, f1, f2, f3);
-
-    // gain =
-    //     gain * centdblut(envShift(v->ampvol));  //* ch.midi_volume;  // *
-    //     att;
-
-    if (v->lpf != NULL) {
-      gain = BiQuad(f1, v->lpf);  // 1.0;  //	printf("\t %f 	%f\n",gain);
-    }
-    *(output + 2 * i) += gain * v->panRight;
+    // gain *= 1;  // centdblut(envShift(v->ampvol));
+    // if (v->lpf != NULL) {
+    //   gain = BiQuad(gain, v->lpf);  // 1.0;  //	printf("\t %f
+    //   %f\n",gain);
+    // }
+    *(output + 2 * i) += gain;  // * v->panRight;
     *(output + 2 * i + 1) += gain * v->panRight;
 
-    v->frac += v->ratio;
+    v->frac += v->ratio * p2over1200(modEG * v->z->ModEnv2Pitch);
     while (v->frac >= 1.0f) {
       v->frac--;
       v->pos++;
@@ -222,6 +228,8 @@ void setProgram(int channelNumber, int presetId) {
 void noteOn(int channelNumber, int midi, int vel, unsigned long when) {
   //	assert(g_ctx->channels[channelNumber].pzset.npresets > 0);
   // g_ctx->channels[channelNumber].voices = NULL;
+  void noteOff(int channelNumber, int midi);
+
   get_sf(channelNumber, midi, vel);
 }
 
@@ -247,7 +255,7 @@ void render(ctx_t *ctx) {
       if ((*tr)->done) continue;
       if ((*tr)->ampvol->release_steps <= 0) {
         voice *donev = *tr;
-        (*tr)->done = 1;
+        (*tr)->done = voice_gc;
         *tr = (*tr)->next;
         g_ctx->refcnt--;
         free(donev);
@@ -286,8 +294,8 @@ void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx)) {
     duration -= 0.00266f;
   }
 }
-#define debug 1
-#ifdef debugggg
+#define debsug 1
+#ifdef debug
 #include <assert.h>
 
 #include "call_ffp.c"
@@ -315,3 +323,40 @@ int main() {
   }
 }
 #endif
+
+float p2over1200(float x) {
+  if (x < -12000) return 0;
+  if (x < 0)
+    return 1.f / p2over1200(-x);
+  else if (x > 1200.0f) {
+    return 2 * p2over1200(x - 1200.0f);
+  } else {
+    return p2over1200LUT[(unsigned short)(x)];
+  }
+}
+float centdblut(float x) {
+  if (x < 0) x = 0.0f;
+  if (x > 960) x = 960.0f;
+
+  return centdbLUT[(int)x];
+}
+float midiCBlut(int midi) {
+  if (midi < 0) return -960.0f;
+  if (midi > 960) return 0.0f;
+  return midiCB[midi];
+}
+float centtone2freq(unsigned short ct) {
+  return p2over1200(ct - 6900) * 440.0f;
+}
+float ct2relativePitch(short ct) { return p2over1200(ct); }
+
+float panLeftLUT(short Pan) {
+  if (Pan < -500) {
+    return 1;
+  }
+  if (Pan > 500) {
+    return 0.0f;
+  } else {
+    return 0.5f + pan[Pan + 500];
+  }
+}

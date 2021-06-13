@@ -54,5 +54,5 @@ void wavetable_2dimensional_oscillator(
 void wavetable_3dimensional_oscillator(
     wavetable_oscillator_data *this_oscillator);
 int wavetable_struct_size();
-
+void reset_oscillator(int channel);
 void set_midi(wavetable_oscillator_data *osc, uint8_t midi);
