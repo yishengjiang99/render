@@ -165,11 +165,14 @@ PresetZones findPresetZones(int i, int nregions) {
   int instID = -1;
   int lastbag = phdrs[i + 1].pbagNdx;
   bzero(&attrs[default_pbg_cache_index], 240 * sizeof(short));
+  memcpy(attrs, defvals, 2 * 60);
+  memcpy(attrs + pbg_attr_cache_index, defvals, 2 * 60);
 
   for (int j = phdrs[i].pbagNdx; j < phdrs[i + 1].pbagNdx; j++) {
     int attr_inex =
         j == phdrs[i].pbagNdx ? default_pbg_cache_index : pbg_attr_cache_index;
     bzero(&attrs[pbg_attr_cache_index], 180 * sizeof(short));
+    memcpy(attrs + pbg_attr_cache_index, defvals, 2 * 60);
 
     pbag *pg = pbags + j;
     pgen_t *lastg = pgens + pg[j + 1].pgen_id;
@@ -184,12 +187,16 @@ PresetZones findPresetZones(int i, int nregions) {
         instID = g->val.shAmount;
         sanitizedInsert(attrs, g->genid + attr_inex, g);
         bzero(&attrs[default_ibagcache_idex], 120 * sizeof(short));
+        memcpy(attrs + default_ibagcache_idex, defvals, 2 * 60);
+
         int lastSampId = -1;
         inst *ihead = insts + instID;
         int ibgId = ihead->ibagNdx;
         int lastibg = (ihead + 1)->ibagNdx;
         for (int ibg = ibgId; ibg < lastibg; ibg++) {
           bzero((&attrs[0] + ibg_attr_cache_index), 60 * sizeof(short));
+          memcpy(attrs + ibg_attr_cache_index, defvals, 2 * 60);
+
           attr_inex =
               ibg == ibgId ? default_ibagcache_idex : ibg_attr_cache_index;
           lastSampId = -1;
@@ -216,6 +223,9 @@ PresetZones findPresetZones(int i, int nregions) {
                   int prange[2] = {pbagAttr & 0x007f, pbagAttr >> 8};
                   if (prange[0] > irange[1] || prange[1] < irange[0]) {
                     add = 0;
+                    //   printf("discard]n %d %d %d %d  \n", prange[0],
+                    //   prange[1], irange[0], irange[1]);
+
                     break;
                   }
                   if (prange[1] < irange[1]) irange[1] = prange[1];
@@ -235,6 +245,7 @@ PresetZones findPresetZones(int i, int nregions) {
                 memcpy(zones + found, zoneattr, 60 * sizeof(short));
 
                 found++;
+              } else {
               }
             }
           }
