@@ -36,18 +36,18 @@ int main(int argc, char** argv) {
   fwrite(table_set, sizeof(table_set), 1, fopen(outfile, "wb"));
 }
 void init_wavetabe_set(wavetable_set* tset, int pid, int bankid) {
-  int preset = 60;
-  setProgram(0, 60);
+  int cid = bankid == 128 ? 9 : 0;
+  setProgram(cid, pid);
   complex c[FFTBINS];
   for (int i = 0; i < nkeys; i++) {
     for (int j = 0; j < nvels; j++) {
       int midi =
           20 + i * 80.0f / (nkeys * 1.0f);  // i = (midi-20)*(nkeys*1.0f)/80.0f
       int vel = j * 120.9f / (float)nvels;  // j=(float)vel/120.0f*nvels
-      noteOn(0, midi, vel, 0);
-      voice* v1 = g_ctx->channels[0].voices;
+      noteOn(cid, midi, vel, 0);
+      voice* v1 = g_ctx->channels[cid].voices;
       if (!v1) {
-        fprintf(stderr, "v1 not found at %d %d", i, j);
+        fprintf(stderr, "\n-v1 not found at %d %d %d %d", pid, bankid, i, j);
         continue;
       }
       adsr_t* ampvol = v1->ampvol;
@@ -72,10 +72,10 @@ void init_wavetabe_set(wavetable_set* tset, int pid, int bankid) {
       render_and_fft(v1, c, stbl, tset->eg_peak[i][j]);
       v1->pos = v1->startloop;
       render_and_fft(v1, c, stbl, tset->loop[i][j]);
-      noteOff(0, midi);
+      noteOff(cid, midi);
       ampvol->db_attenuate = ampvol->sustain;
       modvol->db_attenuate = modvol->sustain;
-      g_ctx->channels[0].voices = NULL;
+      g_ctx->channels[cid].voices = NULL;
       render_and_fft(v1, c, stbl, tset->decay[i][j]);
       if (v1 != NULL) free(v1);
     }
