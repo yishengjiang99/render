@@ -113,7 +113,10 @@
 		"ffitarget.h": "c",
 		"hash_map": "cpp",
 		"macros.h": "c",
-		"luts.h": "c"
+		"luts.h": "c",
+		"fft-samples.h": "c",
+		"webassembly.h": "c",
+		"random": "c"
 	},
 	"C_Cpp.errorSquiggles": "Enabled",
 	"editor.tokenColorCustomizations": {

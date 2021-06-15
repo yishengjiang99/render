@@ -3,7 +3,7 @@
 FILE *ffp(int ac, int ar) {
   char cmd[1024];
 
-  sprintf(cmd, "ffplay -loglevel debug -i pipe:0 -f f32le -ac %d -ar %d", ac,
+  sprintf(cmd, "ffplay -loglevel panic -nodisp -i pipe:0 -f f32le -ac %d -ar %d", ac,
           ar);
   FILE *ffplay = popen(cmd, "w");
 

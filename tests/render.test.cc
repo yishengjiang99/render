@@ -5,14 +5,13 @@ extern "C" {
 #include "../libs/biquad.c"
 #include "../runtime.c"
 #include "../sf2.c"
-}
-
 class Ff : public ::testing::Test {
   void SetUp() override {
-    readsf(fopen("../GeneralUserGS.sf2", "rb"));
+    readsf((char*)"../file.sf2");
     init_ctx();
   }
 };
+}
 
 TEST_F(Ff, LookUPTAbles) {
   for (int i = -12000; i < 20000; i++) {
@@ -23,9 +22,11 @@ TEST_F(Ff, LookUPTAbles) {
 }
 
 TEST_F(Ff, newVoice) {
-  zone_t z = findByPid(60, 0).zones[0];
+  zone_t z = findByPid(2, 0).zones[0];
   voice* v = newVoice(&z, 66, 99, 0);
   ASSERT_NE(v, nullptr);
   ASSERT_NE(v->lpf, nullptr);
   ASSERT_LE(z.VelRange.lo, z.VelRange.hi);
 }
+
+TEST_F(Ff, canLoadWavTablesFromFile) {}

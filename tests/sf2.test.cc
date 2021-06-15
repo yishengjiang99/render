@@ -9,7 +9,7 @@ extern "C" {
 class CtxTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    readsf(fopen("../FluidR3_GM.sf2", "rb"));
+    readsf("../file.sf2");
     init_ctx();
     setProgram(2, 60);
   }

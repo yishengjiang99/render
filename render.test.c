@@ -10,7 +10,7 @@ int main() {
   printf("%d,%d", z->VelRange.lo, z->VelRange.hi);
 
   init_ctx();
-  readsf(fopen("GeneralUserGS.sf2", "rb"));
+  readsf("file.sf2");
   ctx_t *ctx = init_ctx();
   ctx->outputFD = fopen("o.pcm", "w");
   ctx->channels[0].program_number = 60;

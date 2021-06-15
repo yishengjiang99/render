@@ -34,3 +34,4 @@ target_link_libraries(
 
 include(GoogleTest)
 gtest_discover_tests(rendertest)
+gtest_discover_tests(sf2test)

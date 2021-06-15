@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
 #ifndef SF2_H
 #define SF2_H
 
@@ -102,23 +100,22 @@ typedef struct {
   SFSampleLink sfSampleqaType;
 } shdrcast;
 
-static int nphdrs, npbags, npgens, npmods, nshdrs, ninsts, nimods, nigens,
-    nibags;
+int nphdrs, npbags, npgens, npmods, nshdrs, ninsts, nimods, nigens, nibags;
 
-static phdr *phdrs;
-static pbag *pbags;
-static pmod *pmods;
-static pgen *pgens;
-static inst *insts;
-static ibag *ibags;
-static imod *imods;
-static igen *igens;
-static shdr *shdrs;
-static short *data;
-static void *info;
-static int nsamples;
-static float *sdta;
-static int sdtastart;
+phdr *phdrs;
+pbag *pbags;
+pmod *pmods;
+pgen *pgens;
+inst *insts;
+ibag *ibags;
+imod *imods;
+igen *igens;
+shdr *shdrs;
+short *data;
+void *info;
+int nsamples;
+float *sdta;
+int sdtastart;
 
 typedef struct {
   unsigned short StartAddrOfs, EndAddrOfs, StartLoopAddrOfs, EndLoopAddrOfs,
@@ -142,13 +139,13 @@ typedef struct {
   int npresets;
   zone_t *zones;
 } PresetZones;
-static PresetZones *presetZones;
+PresetZones *presetZones;
 PresetZones findByPid(int pid, int bkid);
 
 PresetZones findPresetZones(int i, int nregions);
 PresetZones findPresetByName(const char *name);
 int findPresetZonesCount(int i);
-void readsf(FILE *f);
+void readsf(char *filename);
 
 enum grntypes {
   StartAddrOfs,

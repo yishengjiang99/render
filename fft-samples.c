@@ -4,11 +4,14 @@
 
 #include <strings.h>
 
+#include "call_ffp.c"
 #include "libs/biquad.c"
 #include "libs/fft.c"
+#include "libs/wavetable_oscillator.c"
+#include "macros.h"
 #include "runtime.c"
 #include "sf2.c"
-
+#include "sf2.h"
 #ifndef stbl
 #include "stbl.c"
 #endif
@@ -21,16 +24,23 @@ void init_wavetabe_set(wavetable_set* tset, int pid, int bankid);
 void render_and_fft(voice* v, complex* c, double* stbl, float* destination);
 
 int main(int argc, char** argv) {
-  // init_oscillators();
+  // char buf[sizeof(wavetable_set)];
+  // bmpheader(buf, sizeof(wavetable_set), nkeys * nvels * 4 * 2);
+  // fwrite(buf, sizeof(wavetable_set), 1, fopen("bmphead.dat", "wb"));
+  // openurl("https://dsp.grepawk.com/render/pages/");
+  init_oscillators();
   int pid = argc > 1 ? atoi(argv[1]) : 0;
   int bid = argc > 2 ? atoi(argv[2]) : 0;
-  char* sf2file = argc > 3 ? argv[3] : "GeneralUserGS.sf2";
+
+  char* sf2file = argc > 3 ? argv[3] : "file.sf2";
   char outfile[1024];
   double sinetable[FFTBINS << 2];
   memcpy(sinetable, stbl, (FFTBINS << 2) * sizeof(double));
-  readsf(fopen(sf2file, "rb"));
+  readsf(sf2file);
   complex c[FFTBINS];
   init_ctx();
+  // g_ctx->outputFD = ffp(1, 48000);
+
   init_wavetabe_set(table_set, pid, bid);
   sprintf(outfile, "pages/%d_%d.dat", pid, bid);
   fwrite(table_set, sizeof(table_set), 1, fopen(outfile, "wb"));
@@ -54,12 +64,9 @@ void init_wavetabe_set(wavetable_set* tset, int pid, int bankid) {
       adsr_t* modvol = v1->moddvol;
 
       shdrcast* sh = (shdrcast*)(shdrs + v1->z->SampleId);
-      tset->envelope[i][j][ATT] =
-          p2over1200(v1->z->VolEnvAttack + v1->z->VolEnvDelay) * SAMPLE_RATE;
-      tset->envelope[i][j][DEC] =
-          p2over1200(v1->z->VolEnvHold + v1->z->VolEnvDecay) * SAMPLE_RATE;
-      tset->envelope[i][j][REL] =
-          p2over1200(v1->z->VolEnvRelease) * SAMPLE_RATE;
+      tset->envelope[i][j][ATT] = v1->z->VolEnvAttack;
+      tset->envelope[i][j][DEC] = v1->z->VolEnvDecay;  //+ v1->z->VolEnvHold;
+      tset->envelope[i][j][REL] = v1->z->VolEnvRelease;
       tset->envelope[i][j][SUS] = v1->z->VolEnvSustain;
 
       render_and_fft(v1, c, stbl, tset->init_att[i][j]);
@@ -67,8 +74,6 @@ void init_wavetabe_set(wavetable_set* tset, int pid, int bankid) {
       modvol->db_attenuate = 0;
       ampvol->att_steps = 0;
       modvol->att_steps = 0;
-      while (ampvol->att_steps > 0) envShift(ampvol);
-      while (modvol->att_steps > 0) envShift(modvol);
       render_and_fft(v1, c, stbl, tset->eg_peak[i][j]);
       v1->pos = v1->startloop;
       render_and_fft(v1, c, stbl, tset->loop[i][j]);
@@ -77,6 +82,14 @@ void init_wavetabe_set(wavetable_set* tset, int pid, int bankid) {
       modvol->db_attenuate = modvol->sustain;
       g_ctx->channels[cid].voices = NULL;
       render_and_fft(v1, c, stbl, tset->decay[i][j]);
+      oscillator->wave000 = tset->loop[i][j];
+      set_midi(0, 60);
+      oscillator->fadeDim1 = 0.0f;
+      oscillator->fadeDim1Increment = 1.0f / SAMPLE_RATE * 23.0f;
+      // for (int i = 0; i < 48000; i += SAMPLE_BLOCKSIZE) {
+      //   wavetable_1dimensional_oscillator(oscillator);
+      //   fwrite(oscillator->output_ptr, 4, 1, g_ctx->outputFD);
+      // }
       if (v1 != NULL) free(v1);
     }
   }
@@ -94,7 +107,7 @@ void render_and_fft(voice* v, complex* c, double* stbl, float* destination) {
   bit_reverse(c, log2(FFTBINS));
   int npartials = 11;
   for (int i = 0; i < FFTBINS; i++) {
-    //  printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
+    // printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
 
     if (i > npartials && i <= FFTBINS / 2) {
       c[i].real = 0.0f;
@@ -110,6 +123,6 @@ void render_and_fft(voice* v, complex* c, double* stbl, float* destination) {
   iFFT(c, log2(FFTBINS), stbl);
   for (int i = 0; i < FFTBINS; i++) {
     // printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
-    destination[i] = (float)c[i].real;
+    destination[i] = (float)c[i].imag;
   }
 }

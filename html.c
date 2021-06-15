@@ -2,13 +2,14 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "libs/fft.h"
-#include "runtime.h"
-#include "sf2.h"
+#include "libs/biquad.c"
+#include "libs/fft.c"
+#include "runtime.c"
+#include "sf2.c"
 #include "stbl.c"
 
 FILE *output, *sf2;
-char *filename;
+char outputff[1024];
 char template[1024 * 56];
 char javascript[1024 * 56];  //*javascript;
 int matched;
@@ -22,13 +23,12 @@ static inline void file_get_contents(FILE *fd, char *ptr) {
 }
 
 int main(int argc, char **argv) {
-  filename = argc > 2 ? argv[2] : "GeneralUserGS.sf2";
-  sf2 = fopen(filename, "rb");
-  output = fopen("staging.html", "wb");
-  if (!output || !sf2) {
-    perror("failed to open output or sf2 file");
-    return 1;
-  }
+  char *readff = argv[2];
+  char *outputff = argv[3];
+
+  readsf(readff);
+
+  output = fopen(outputff, "ww");
   file_get_contents(fopen("playsample.js", "rb"), javascript);
   echo(
       "<!DOCTYPE html>"
@@ -36,9 +36,9 @@ int main(int argc, char **argv) {
       "<body><a href='_blank' src='LICENSE.txt'>LICENSE.txt</a>"
       "<div style='display:grid;grid-template-columns: 2fr 3fr'>"
       "   <div class='grid-span-3'>");
-  readsf(sf2);
   for (int i = 0; i < 128; i++) {
     PresetZones pz = findByPid(i, 0);
+    if (pz.npresets == 0) continue;
     zone_t *zones = pz.zones;
     shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);
 
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
               "<td><a href='#' class='pcm' sr='%d' file='%s' "
               "range='bytes=%d-%d' endloop='%d' startloop='%d'>sample"
               " (%d smpls )</a></td>",
-              sampl->sampleRate, filename, sdtastart + 2 * sampl->start,
+              sampl->sampleRate, readff, sdtastart + 2 * sampl->start,
               sdtastart + 2 * sampl->end + 1, sampl->endloop - sampl->start,
               sampl->startloop - sampl->start, sampl->end - sampl->start);
 

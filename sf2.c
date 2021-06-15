@@ -65,14 +65,16 @@ void sf2Info(FILE *fd) {
   }
 }
 
-void readsf(FILE *fd) {
+void readsf(char *filename) {
+  FILE *fd = fopen(filename, "rb");
   sf2Info(fd);
   read_sdta(fd);
 }
 
 void read_sf2_mem(void *mem, int n) {
   FILE *fd = fmemopen(mem, n, "rb");
-  readsf(fd);
+  sf2Info(fd);
+  read_sdta(fd);
 }
 PresetZones findByPid(int pid, int bkid) {
   for (unsigned short i = 0; i < nphdrs - 1; i++) {
@@ -128,6 +130,9 @@ int findPresetZonesCount(int i) {
     for (int k = pgenId; k < lastPgenId; k++) {
       pgen *g = pgens + k;
       if (g->genid == Instrument) {
+        if (g->genid == VibLFO2Pitch || g->genid == ModLFO2Vol) {
+          printf("%hd\n", g->val.shAmount);
+        }
         instID = g->val.shAmount;
         lastSampId = -1;
         inst *ihead = insts + instID;
@@ -223,8 +228,6 @@ PresetZones findPresetZones(int i, int nregions) {
                   int prange[2] = {pbagAttr & 0x007f, pbagAttr >> 8};
                   if (prange[0] > irange[1] || prange[1] < irange[0]) {
                     add = 0;
-                    //   printf("discard]n %d %d %d %d  \n", prange[0],
-                    //   prange[1], irange[0], irange[1]);
 
                     break;
                   }
@@ -235,9 +238,10 @@ PresetZones findPresetZones(int i, int nregions) {
                   zoneattr[i] = irange[0] | (irange[1] << 8);
                 } else {
                   if (attrs[pbg_attr_cache_index + i]) {
-                    zoneattr[i] += attrs[pbg_attr_cache_index + i];
+                    zoneattr[i] += attrs[pbg_attr_cache_index + i] - defvals[i];
                   } else if (attrs[default_pbg_cache_index + i]) {
-                    zoneattr[i] += attrs[default_pbg_cache_index + i];
+                    zoneattr[i] +=
+                        attrs[default_pbg_cache_index + i] - defvals[i];
                   }
                 }
               }

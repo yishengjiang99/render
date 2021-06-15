@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "call_ffp.c"
+#include "libs/biquad.c"
 #include "runtime.c"
 #include "sf2.c"
 #include "tml.h"
@@ -38,23 +39,23 @@ void *cb(void *args) {
   ctx_t *ctx = (ctx_t *)args;
   ctx->outputFD = NULL;
   long elapsed;
-  // ctx->outputFD = stdout;
+  ctx->outputFD = ffp(2, g_ctx->sampleRate);
   float interval =
       1000000.0f / ((float)ctx->sampleRate / (float)ctx->samples_per_frame);
 
   for (int i = 0; i < 5 * ctx->sampleRate; i++) {
     render(ctx);
 
-    usleep(interval - (float)(tiktoktime() / 1000.0f));  // * MSEC);
+    usleep(2222);  // interval - (float)(tiktoktime() / 1000.0f));  // * MSEC);
   }
 
   return NULL;
 }
 int main(int argc, char **argv) {
-  tml_message *m = tml_load_filename(argc > 1 ? argv[1] : "song.mid");
+  tml_message *m = tml_load_filename(argc > 2 ? argv[2] : "song.mid");
   channel_t *ch;
   init_ctx();
-  readsf(fopen("GeneralUserGS.sf2", "rb"));
+  readsf("GeneralUserGS.sf2");
 
   int msec = 0;
 

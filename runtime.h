@@ -1,5 +1,6 @@
 #ifndef RUNTIME_H
 #define RUNTIME_H
+#include <stdio.h>
 
 #include "libs/biquad.h"
 #include "sf2.h"
