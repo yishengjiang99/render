@@ -25,7 +25,7 @@
 
     Written ca. 1985 in THINK C by Robert Bristow-Johnson.
 */
-#include "fft.h"
+#include "../includes/fft.h"
 
 #include <math.h>
 

@@ -1,12 +1,13 @@
-#include "../ncludes/runtime.h"
+#include "../includes/runtime.h"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <strings.h>
 
-#include "biquad.h"
+
+#include "../includes/biquad.h"
 #include "luts.c"
-#include "sf2.h"
+#include "../includes/sf2.h"
 
 #define minf(a, b) a < b ? a : b;
 
