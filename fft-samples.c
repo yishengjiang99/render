@@ -4,17 +4,13 @@
 
 #include <strings.h>
 
-#include "call_ffp.c"
-#include "libs/biquad.c"
-#include "libs/fft.c"
-#include "libs/wavetable_oscillator.c"
+#include "biquad/biquad.h"
+#include "libs/fft.h"
+#include "libs/wavetable_oscillator.h"
 #include "macros.h"
 #include "runtime/runtime.h"  //runtime.c"
-#include "sf2.c"
-#include "sf2.h"
-#ifndef stbl
-#include "stbl.c"
-#endif
+#include "sf2/sf2.h"
+
 #ifndef SAMPLE_RATE  // the other one is the rendering engine samp rate
 #define SAMPLE_RATE 48000
 
@@ -22,7 +18,8 @@
 static wavetable_set table_set[1];
 void init_wavetabe_set(wavetable_set* tset, int pid, int bankid);
 void render_and_fft(voice* v, complex* c, double* stbl, float* destination);
-
+static double stbl[FFTBINS / 4];
+sin_table(stbl, log2(FFTBINS));
 int main(int argc, char** argv) {
   // char buf[sizeof(wavetable_set)];
   // bmpheader(buf, sizeof(wavetable_set), nkeys * nvels * 4 * 2);
@@ -49,6 +46,7 @@ void init_wavetabe_set(wavetable_set* tset, int pid, int bankid) {
   int cid = bankid == 128 ? 9 : 0;
   setProgram(cid, pid);
   complex c[FFTBINS];
+
   for (int i = 0; i < nkeys; i++) {
     for (int j = 0; j < nvels; j++) {
       int midi =

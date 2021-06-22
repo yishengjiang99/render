@@ -21,7 +21,7 @@ http://www.smartelectronix.com/musicdsp/text/filters005.txt
 */
 
 /* this would be biquad.h */
-#include "biquad.h"
+#include "includes/biquad.h"
 
 #include <math.h>
 #include <stdlib.h>
