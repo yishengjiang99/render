@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "sf2.c"
+#include "sf2/sf2.h"  //.c"
 #include "stdlib.h"
 char *filename;
 FILE *sf2, *output;

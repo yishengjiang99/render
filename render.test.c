@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "runtime.c"
-#include "sf2.c"
+#include "runtime/runtime.h"
+#include "sf2/sf2.h"
 
 int main() {
   short attrs[60] = defattrs;

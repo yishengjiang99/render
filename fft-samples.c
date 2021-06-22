@@ -9,7 +9,7 @@
 #include "libs/fft.c"
 #include "libs/wavetable_oscillator.c"
 #include "macros.h"
-#include "runtime.c"
+#include "runtime/runtime.h"  //runtime.c"
 #include "sf2.c"
 #include "sf2.h"
 #ifndef stbl
