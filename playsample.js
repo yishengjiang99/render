@@ -1,4 +1,5 @@
 
+
 const genstrs = ["StartAddrOfs", "EndAddrOfs", "StartLoopAddrOfs", "EndLoopAddrOfs", "StartAddrCoarseOfs", "ModLFO2Pitch", "VibLFO2Pitch", "ModEnv2Pitch", "FilterFc", "FilterQ", "ModLFO2FilterFc", "ModEnv2FilterFc", "EndAddrCoarseOfs", "ModLFO2Vol", "Unused1", "ChorusSend", "ReverbSend", "Pan", "Unused2", "Unused3", "Unused4", "ModLFODelay", "ModLFOFreq", "VibLFODelay", "VibLFOFreq", "ModEnvDelay", "ModEnvAttack", "ModEnvHold", "ModEnvDecay", "ModEnvSustain", "ModEnvRelease", "Key2ModEnvHold", "Key2ModEnvDecay", "VolEnvDelay", "VolEnvAttack", "VolEnvHold", "VolEnvDecay", "VolEnvSustain", "VolEnvRelease", "Key2VolEnvHold", "Key2VolEnvDecay", "Instrument", "Reserved1", "KeyRange", "VelRange", "StartLoopAddrCoarseOfs", "Keynum", "Velocity", "Attenuation", "Reserved2", "EndLoopAddrCoarseOfs", "CoarseTune", "FineTune", "SampleId", "SampleModes", "Reserved3", "ScaleTune", "ExclusiveClass", "OverrideRootKey", "Dummy"];
 const attrsym = genstrs.map(str => Symbol(str));
 
@@ -44,14 +45,13 @@ document.body.onclick = async (e) => {
 	}
 	if (e.target.classList.contains('pcm')) {
 		e.preventDefault();
-		e.preventDefault();
 
 		const sr = e.target.getAttribute('sr');
-		const startloop = e.target.getAttribute("startloop");
-		const endloop = e.target.getAttribute("endloop")
+		const startloop = parseInt(e.target.getAttribute("startloop"))
+		const endloop = parseInt(e.target.getAttribute("endloop"))
 		const pitch = e.target.getAttribute("pitch");
-		const file = e.target.getAttribute('file'); const mid = e.target.getAttribute('midi') || 55;
-
+		const file = e.target.getAttribute('file');
+		const mid = e.target.getAttribute('midi') || 55;
 		const range = e.target.getAttribute('range');
 		const attrs = e.target.parentElement.parentElement.querySelector(".attlist")
 			.getAttribute("attrs").split(",");
@@ -83,31 +83,27 @@ document.body.onclick = async (e) => {
 		}
 		const abs = new AudioBufferSourceNode(ctx, {
 			buffer: audb,
-			loopStart: parseInt(startloop),
-			loopEnd: parseInt(endloop),
-			playbackRate: mid * 100 / parseFloat(pitch),
-			loop: true
+			playbackRate: mid * 100 / pitch,
+			// loopStart: startloop, loopEnd: endloop, loop: true
 		});
-
-
 		let lpf = new BiquadFilterNode(ctx,
 			{
-				frequency: Math.pow(2, zone.FilterFc / 1200) * 8.176,
+				frequency: Math.min(Math.pow(2, zone.FilterFc / 1200) * 8.176, ctx.sampleRate / 2),
 				Q: zone.FilterQ / 10,
 				type: "lowpass"
 			});
 		const modEnvelope = new GainNode(ctx, {gain: 0});
 
-		modEnvelope.connect(lpf.detune);
+		modEnvelope.connect(lpf.frequency);
+		const cent2sec = (cent) => Math.pow(2, cent / 1200);
+		if (zone.ModEnvAttack > -12000) {
 
-		if (zone.ModEnvAttack + zone.ModEnvDelay > -12000) {
-
-			modEnvelope.gain.linearRampToValueAtTime(1, Math.pow(2, (zone.ModEnvAttack) / 1200));
+			modEnvelope.gain.linearRampToValueAtTime(1, cent2sec(zone.ModEnvAttack)); //Math.pow(2, (zone.ModEnvAttack) / 1200));
 		} else {
-			modEnvelope.gain.exponentialRampToValueAtTime(1, .001);
+			modEnvelope.gain.value = 1.0;
 		}
+		modEnvelope.gain.setTargetAtTime(1 - zone.ModEnvSustain / 1000, cent2sec(zone.ModEnvDecay), .4);
 
-		modEnvelope.gain.setTargetAtTime(1 - zone.ModEnvSustain / 1000, Math.pow(2, zone.ModEnvDecay) / 1200, 5);
 		const volumeEnveope = new GainNode(ctx, {gain: 0});
 
 		volumeEnveope.gain.linearRampToValueAtTime(
@@ -115,10 +111,15 @@ document.body.onclick = async (e) => {
 			Math.pow(2, (zone.VolEnvAttack) / 1200));
 
 		volumeEnveope.gain.setTargetAtTime(1 - zone.VolEnvSustain / 1000, Math.pow(2, zone.VolEnvDecay / 1200), .4);
+		abs.connect(volumeEnveope).connect(lpf).connect(ctx.destination);
 
-		abs.connect(lpf).connect(volumeEnveope).connect(ctx.destination);
 		abs.start();
+		e.target.addEventListener("mouseup", function () {
+			volumeEnveope.gain.cancelScheduledValues(0);
+			volumeEnveope.gain.exponentialRampToValueAtTime(.00000001, cent2sec(zone.VolEnvRelease));
+			volumeEnveope.gain.linearRampToValueAtTime(0, cent2sec(zone.VolEnvRelease) + 1);
 
+		}, {once: true});
 		return false;
 	}
 }

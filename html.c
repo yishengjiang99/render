@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
         "<td>velrange</td>"
         "<td>play</td>"
         "<td>attenuate</td><td>mod_pitch_env</td><td>filter</td>"
-        "<td>pitch</td><td>samprate</td><td>loopLength</td>"  
+        "<td>pitch</td><td>samprate</td><td colspan=3>loopLength</td>"  
         "</tr></thead><tbody>");
 
     for (int z = 0; z < pz.npresets; z++) {
@@ -69,24 +69,37 @@ int main(int argc, char **argv) {
               zones->VelRange.hi);
       fprintf(output, "<td> %hu-%hu </td>", zones->KeyRange.lo,
               zones->KeyRange.hi);
-      fprintf(
-          output,
-          "<td><a href='javascript:;' class='pcm' sr='%d' file='%s' "
-          "range='bytes=%d-%d' endloop='%d' startloop='%d' pitch='%.1f'>sample</a></td>",
-          sampl->sampleRate, readff, sdtastart + 2 * sampl->start,
-          sdtastart + 2 * sampl->end + 1,  sdtastart + sampl->endloop-sampl->start,
-           sdtastart + sampl->startloop - sampl->start,  pitch);
+      fprintf(output,
+              "<td><a href='javascript:;' class='pcm' sr='%d' file='%s' ",
+              sampl->sampleRate, readff);
+      fprintf(output,
+              "range='bytes=%u-%u' endloop=%u startloop=%u "
+              "pitch='%f'>sample</a></td>",
+              sdtastart + 2 * sampl->start, sdtastart + 2 * sampl->end + 1,
+              sampl->endloop,
+              sampl->startloop, 
+              pitch);
 
-            fprintf(output,"<td>%hd</td>",  zones->Attenuation);
-             fprintf(output,      "<td>%hd</td>",  zones->ModEnv2FilterFc);
-           fprintf(output,      "<td>%hd(%hd)</td>",        zones->FilterFc, zones->FilterQ);
-             fprintf(output,      "<td>%f</td>",  pitch);
-     fprintf(output,     
-             "<td>%u</td>"
-             "<td>%u</td>"
-             "<td>%u</td>",
-           
-              sampl->sampleRate, sampl->endloop - sampl->startloop, sampl->end - sampl->start);
+      fprintf(output, "<td>%hd</td>", zones->Attenuation);
+      fprintf(output, "<td>%hd</td>", zones->ModEnv2FilterFc);
+      fprintf(output, "<td>%hu(%hd)</td>", zones->FilterFc, zones->FilterQ);
+      fprintf(output, "<td>%f</td>", pitch);
+      fprintf(output,
+              "<td>%u</td>"
+              "<td>%u</td>"
+              "<td>%u</td>"
+
+
+              "<td>%u</td>"
+
+              "<td>%u</td>",
+
+              sampl->sampleRate,
+              sampl->start,
+              sampl->startloop-sampl->start, 
+              sampl->endloop-sampl->start,
+              sampl->end - sampl->start
+              );
 
       short *attrs = (short *)zones;
       fprintf(output, "<td><a href='#' class='attlist' attrs='");
