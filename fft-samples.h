@@ -5,7 +5,7 @@
 #define dspbuffersize 128
 
 #define FFTBINS 1024
-
+#define LOG2_FFTBINS 10
 #define nkeys 6
 #define nvels 5
 typedef unsigned int uint32_t;

@@ -4,7 +4,7 @@ set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
 
 project(my_project)
-add_definitions(CMAKEON, 1)
+include_directories(include)
 
 ADD_LIBRARY(
 	sf2
@@ -13,17 +13,27 @@ ADD_LIBRARY(
 
 ADD_LIBRARY(
 	runtime
-  sf2/sf2.c
+  runtime/runtime.c
 )
 
 ADD_LIBRARY(
   biquad
-  libs/biquad.c
+  biquad/biquad.c
+)
+
+ADD_LIBRARY(
+  wavetable_oscillator
+  libs/wavetable_oscillator.c
 )
 
 add_executable(
   html
   html.c
+)
+
+add_executable(
+  fftsamples
+  fft-samples.c
 )
 
 target_link_libraries(
@@ -35,4 +45,12 @@ target_link_libraries(
   runtime
   sf2
   biquads
+)
+
+target_link_libraries(
+  fftsamples
+  runtime
+  sf2
+  biquads
+  wavetable_oscillator
 )
