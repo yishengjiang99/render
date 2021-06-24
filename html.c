@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   file_get_contents(fopen("playsample.js", "rb"), javascript);
   echo(
       "<!DOCTYPE html>"
-      "<html><head></head>"
+      "<html><head><link type='stylesheet' href='static/sticky.css'></a<</head>"
       "<body><a href='_blank' src='base64w'>LICENSE.txt</a>"
       "<script src='playsample.js'></script> "
       "<div style='display:grid;grid-template-columns: 2fr 3fr'>\n"
@@ -81,25 +81,18 @@ int main(int argc, char **argv) {
               pitch);
 
       fprintf(output, "<td>%hd</td>", zones->Attenuation);
-      fprintf(output, "<td>%hd</td>", zones->ModEnv2FilterFc);
+      fprintf(output, "<td>%hd/%hd/%hd</td>", zones->ModEnv2FilterFc,zones->ModEnv2Pitch,zones->ModEnvSustain);
       fprintf(output, "<td>%hu(%hd)</td>", zones->FilterFc, zones->FilterQ);
-      fprintf(output, "<td>%f</td>", pitch);
+      fprintf(output, "<td>%d</td>", (int)pitch);
       fprintf(output,
               "<td>%u</td>"
               "<td>%u</td>"
-              "<td>%u</td>"
+              "<td>%u+%u</td>",
 
-
-              "<td>%u</td>"
-
-              "<td>%u</td>",
-
-              sampl->sampleRate,
-              sampl->start,
-              sampl->startloop-sampl->start, 
-              sampl->endloop-sampl->start,
-              sampl->end - sampl->start
-              );
+              sampl->sampleRate, 
+              sampl->startloop - sampl->start,
+              sampl->endloop - sampl->start, 
+              sampl->end - sampl->endloop);
 
       short *attrs = (short *)zones;
       fprintf(output, "<td><a href='#' class='attlist' attrs='");
@@ -113,13 +106,16 @@ int main(int argc, char **argv) {
     }
     echo("</tbody></table></details>");
   }
+  echo("<script>");
+        file_get_contents(fopen("./static/sticky.js","rb"),javascript);  echo("<script>");
 
   echo(
       "</div>"
       "<div id=details style='position: sticky; right: 10px; "
       "top:20px;'></div>" 
-      "</div> "
-
+      "</div> <script>\n")
+      echo(javascript);
+      echo("\n</script>"
       "</body>"
       "</html>");
       #ifdef debugger

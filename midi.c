@@ -5,9 +5,8 @@
 #include <unistd.h>
 
 #include "call_ffp.c"
-#include "libs/biquad.c"
-#include "runtime.c"
-#include "sf2.c"
+#include "includes/runtime.h"
+#include "includes/sf2.h"
 #include "tml.h"
 #ifndef TICTOK_C
 #define TICTOK_C
