@@ -12,24 +12,6 @@
 #define minf(a, b) a < b ? a : b;
 void loopreal(voice *v, double *output);
 //(presetZones[i].zones[j].KeyRange & 0x7f00) >> 8)
-int get_sf(int channelNumer, int key, int vel) {
-  channel_t ch = g_ctx->channels[channelNumer];
-  zone_t *zones = ch.pzset.zones;
-  int found = 0;
-  for (int i = 0; i < ch.pzset.npresets - 1; i++, zones++) {
-    if (zones == NULL) break;
-    if (vel > -1 && (zones->VelRange.lo > vel || zones->VelRange.hi < vel))
-      continue;
-    if (key > -1 && (zones->KeyRange.lo > key || zones->KeyRange.hi < key))
-      continue;
-    newVoice(zones, key, vel, channelNumer);
-    found++;
-  }
-  if (!found && vel > -1) return get_sf(channelNumer, key, -1);
-  if (!found && key > -1) return get_sf(channelNumer, -1, vel);
-
-  return found;
-}
 
 adsr_t *newEnvelope(short centDelay, short centAtt, short centHold,
                     short centRelease, short centDecay, short sustain,
@@ -134,7 +116,7 @@ void loopreal(voice *v, double *output) {
     *(output + 2 * i) += (double)gain * v->panLeft;
     *(output + 2 * i + 1) += (double)gain * v->panRight;
 
-    v->frac += v->ratio * p2over1200(modEG * v->z->ModEnv2Pitch);
+    v->frac += v->ratio;  // p2over1200(modEG * v->z->ModEnv2Pitch);
     while (v->frac >= 1.0f) {
       v->frac--;
       v->pos++;
@@ -153,7 +135,6 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   voice *v = (voice *)malloc(sizeof(voice));
   v->next = NULL;
   shdrcast *sh = (shdrcast *)(shdrs + z->SampleId);
-  v->z = z;
   v->chid = cid;
   insertV(&g_ctx->channels[cid].voices, v);
   v->start = sh->start +
@@ -216,16 +197,24 @@ ctx_t *init_ctx() {
   return g_ctx;
 }
 void setProgram(int channelNumber, int presetId) {
-  g_ctx->channels[channelNumber].pzset =
-      findByPid(presetId, channelNumber == 9 ? 128 : 0);
-  g_ctx->channels[channelNumber].program_number = presetId;
+  channel_t *ch = &(g_ctx->channels[channelNumber]);
+  ch->pzset = findByPid(presetId, channelNumber == 9 ? 128 : 0);
+  ch->program_number = presetId;
 }
 void noteOn(int channelNumber, int midi, int vel, unsigned long when) {
   //	assert(g_ctx->channels[channelNumber].pzset.npresets > 0);
   // g_ctx->channels[channelNumber].voices = NULL;
   // void noteOff(int channelNumber, int midi);
-
-  get_sf(channelNumber, midi, vel);
+  channel_t *ch = &(g_ctx->channels[channelNumber]);
+  filtered_zone_result result =
+      filterForZone(ch->pzset, midi, vel);  // (channelNumber, midi, vel);
+  if (result.nfound >= 1)
+    newVoice(result.filteredZones[0], midi, vel, channelNumber);
+  if (result.nfound >= 2)
+    newVoice(result.filteredZones[1], midi, vel, channelNumber);
+  if (result.nfound == 0)
+    printf("warn--- not found for midi note %d at channel %d", midi,
+           channelNumber);
 }
 
 void noteOff(int i, int midi) {

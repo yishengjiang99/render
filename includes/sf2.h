@@ -143,13 +143,19 @@ typedef struct {
   int npresets;
   zone_t *zones;
 } PresetZones;
+
 PresetZones *presetZones;
-PresetZones findByPid(int pid, int bkid);
+PresetZones *findByPid(int pid, int bkid);
 
 PresetZones findPresetZones(int i, int nregions);
 PresetZones findPresetByName(const char *name);
 int findPresetZonesCount(int i);
 void readsf(char *filename);
+typedef struct {
+  zone_t **filteredZones;
+  int nfound;
+} filtered_zone_result;
+filtered_zone_result filterForZone(PresetZones *pset, int key, int vel);
 
 enum grntypes {
   StartAddrOfs,

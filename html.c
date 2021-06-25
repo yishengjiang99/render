@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
       "<div style='display:grid;grid-template-columns: 2fr 3fr'>\n"
       "   <div class='grid-span-3'>");
   for (int i = 0; i < 128; i++) {
-    PresetZones pz = findByPid(i, 0);
+    PresetZones pz = *findByPid(i, 0);
     if (pz.npresets == 0) continue;
     zone_t *zones = pz.zones;
     shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);

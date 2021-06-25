@@ -76,19 +76,16 @@ void read_sf2_mem(void *mem, int n) {
   sf2Info(fd);
   read_sdta(fd);
 }
-PresetZones findByPid(int pid, int bkid) {
+PresetZones *findByPid(int pid, int bkid) {
   for (unsigned short i = 0; i < nphdrs - 1; i++) {
     if (phdrs[i].pid == pid && phdrs[i].bankId == bkid) {
-      return presetZones[i];
+      return presetZones + pid;
     }
   }
 
-  return (PresetZones){
-      (phdr){"", 0, 0, 0, ""},
-      0,
-      NULL,
-  };
+  return NULL;
 }
+
 PresetZones findPresetByName(const char *name) {
   for (unsigned short i = 0; i < nphdrs - 1; i++) {
     if (strstr(phdrs[i].name, name)) {
@@ -258,5 +255,26 @@ PresetZones findPresetZones(int i, int nregions) {
     }
   }
   return (PresetZones){phdrs[i], found, zones};
+}
+
+filtered_zone_result filterForZone(PresetZones *pset, int key, int vel) {
+  zone_t *zones = pset->zones;
+  zone_t *last = pset->zones + pset->npresets;
+  int found = 0;
+  zone_t *foundPtr[3];
+  for (zone_t *zones = 0; zones != last; zones++) {
+    if (zones == NULL) continue;
+    if (vel > -1 && (zones->VelRange.lo > vel || zones->VelRange.hi < vel))
+      continue;
+    if (key > -1 && (zones->KeyRange.lo > key || zones->KeyRange.hi < key))
+      continue;
+
+    foundPtr[found] = &*zones;
+    found++;
+  }
+  if (!found && vel > -1) return filterForZone(pset, key, -1);
+  if (!found && key > -1) return filterForZone(pset, -1, vel);
+
+  return (filtered_zone_result){foundPtr, found};
 }
 #endif

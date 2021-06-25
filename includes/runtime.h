@@ -43,7 +43,7 @@ typedef struct {
   int program_number;
   float midi_volume;
   float midi_pan;
-  PresetZones pzset;
+  PresetZones *pzset;
   voice *voices;
 } channel_t;
 

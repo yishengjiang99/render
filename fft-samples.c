@@ -65,7 +65,7 @@ void init_detailed_wavtables(int pid, int bankid) {
     wavetable_frame** tr = &frames;
 
     for (int f = 0; f < 110; f++) {
-      g_ctx->outputbuffer = (*tr)->frequency_domain_real_img;
+      // g_ctx->outputbuffer = (*tr)->frequency_domain_real_img;
       loopreal(v, (double*)(*tr)->frequency_domain_real_img);
        FFT((*tr)->frequency_domain_real_img, log2(FFTBINS), stbl);
        bit_reverse((*tr)->frequency_domain_real_img,log2(FFTBINS));
