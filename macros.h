@@ -1,11 +1,11 @@
-#define file_get_contents(path, ptr) \
-  FILE* fd = fopen(path, "r");       \
-  fseek(fd, 0, SEEK_END);            \
-  long size = ftell(fd);             \
-  fseek(fd, 0, SEEK_SET);            \
-  char buf[size];                    \
-  fread(fd, 1, size, buf);           \
-  ptr = buf;
+
+
+static inline void file_get_contents(FILE *fd, char *ptr) {
+  fseek(fd, 0, SEEK_END);
+  long size = ftell(fd);
+  fseek(fd, 0, SEEK_SET);
+  fread(ptr, 1, size, fd);
+}
 
 #define printUntil(output, str, stopword)                   \
   int m = 0;                                                \

@@ -22,8 +22,8 @@ void read_sdta(FILE *fd) {
 }
 void sf2Info(FILE *fd) {
   sheader_t *header = (sheader_t *)malloc(sizeof(sheader_t));
-  header2_t *h2 = (header2_t *)malloc(sizeof(header2_t));
   fread(header, sizeof(sheader_t), 1, fd);
+  header2_t *h2 = (header2_t *)malloc(sizeof(header2_t));
   fread(h2, sizeof(header2_t), 1, fd);
   info = malloc(h2->size);
   fread(info, h2->size, 1, fd);

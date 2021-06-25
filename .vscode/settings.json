@@ -117,7 +117,8 @@
 		"fft-samples.h": "c",
 		"webassembly.h": "c",
 		"random": "c",
-		"regex": "c"
+		"regex": "c",
+		"queue": "c"
 	},
 	"C_Cpp.errorSquiggles": "Enabled",
 	"editor.tokenColorCustomizations": {

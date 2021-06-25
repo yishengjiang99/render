@@ -2,27 +2,39 @@
 
 #include "fft-samples.h"
 
+#define output_sampleRate 48000
+#define dspbuffersize 128
 #include <strings.h>
 
-#include "includes/biquad.h"
-#include "includes/fft.h"
-#include "includes/wavetable_oscillator.h"
+#include "libs/biquad.c"
+#include "libs/fft.c"
+#include "libs/wavetable_oscillator.c"
 #include "macros.h"
-#include "includes/runtime.h"
-#include "includes/sf2.h"
+#include "runtime/runtime.c"
+#include "sf2/sf2.c"
 
 #ifndef SAMPLE_RATE  // the other one is the rendering engine samp rate
 #define SAMPLE_RATE 48000
 
 #endif
+
 void init_detailed_wavtables(int pid, int bankid);
-void render_and_fft(voice* v, complex* c, double* stbl);
+void render_and_fft(voice* v, complex* c, double* stbl, float*frame);
+#define FFTBINS 32
 static double stbl[FFTBINS / 4];
 
+typedef struct _frame{
+  int duration_nsamples;
+  complex frequency_domain_real_img[FFTBINS];
+} wavetable_frame;
+
+#define FFTBINS 32
+#define LOG2_FFTBINS 5
 int main(int argc, char** argv) {
   sin_table(stbl, log2(FFTBINS));
 
-  init_oscillators();
+  wavetable_oscillator_data* osc = malloc(sizeof(wavetable_oscillator_data));
+
 
   char* sf2file = argc > 1 ? argv[1] : "file.sf2";
   char outfile[1024];
@@ -30,58 +42,35 @@ int main(int argc, char** argv) {
   memcpy(sinetable, stbl, (FFTBINS << 2) * sizeof(double));
   readsf(sf2file);
   init_ctx();
-  for(int i=0;i<nphdrs;i++){
+  for (int i = 0; i < nphdrs; i++) {
     int pid = phdrs[i].pid;
     int bid = phdrs[i].bankId;
     init_detailed_wavtables(pid, bid);
-
+    break;
   }
   return 1;
 }
 void init_detailed_wavtables(int pid, int bankid) {
   int cid = bankid == 128 ? 9 : 0;
   setProgram(cid, pid);
-  PresetZones presetZones = g_ctx->channels[cid].pzset;
+  PresetZones *pz = presetZones+pid;
   complex c[FFTBINS];
-  wavetable_sequence sequences[presetZones.npresets];
   
-  for(int i=0; i<presetZones.npresets;i++){
-    zone_t z =presetZones.zones[i];
-    shdrcast* sh = (shdrcast*)(shdrs + z.SampleId);
+  for (int i = 0; i < pz->npresets - 1; i++) {
+    zone_t *z =pz->zones + i;
+    shdrcast* sh = (shdrcast*)(shdrs + z->SampleId);
     g_ctx->sampleRate = sh->sampleRate;
-    voice *v = newVoice(&z, z.KeyRange.hi, z.VelRange.hi, cid);
-    render_and_fft(v, c, stbl);
-  }
-}
+    voice* v = newVoice(z, z->KeyRange.hi, z->VelRange.hi, cid);
+    wavetable_frame *frames = malloc(sizeof(wavetable_frame)*10);
+    wavetable_frame** tr = &frames;
 
-void render_and_fft(voice* v, complex* c, double* stbl) {
-  bzero(c, sizeof(complex) * FFTBINS);
-  channel_t dummy;
-  loop(v, g_ctx->outputbuffer, dummy);
-  for (int i = 0; i < FFTBINS; i++) {
-    c[i].real = g_ctx->outputbuffer[i * 2];
-    c[i].imag = 0.0f;
-  }
-  FFT(c, log2(FFTBINS), stbl);
-  bit_reverse(c, log2(FFTBINS));
-  int npartials = 11;
-  for (int i = 0; i < FFTBINS; i++) {
-     printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
-
-    if (i > npartials && i <= FFTBINS / 2) {
-      c[i].real = 0.0f;
-      c[i].imag = 0.0f;
-    }
-    if (i > FFTBINS / 2 && i < FFTBINS - npartials - 1) {
-      c[i].real = 0.0f;
-      c[i].imag = 0.0f;
+    for (int f = 0; f < 110; f++) {
+      g_ctx->outputbuffer = (*tr)->frequency_domain_real_img;
+      loopreal(v, (double*)(*tr)->frequency_domain_real_img);
+       FFT((*tr)->frequency_domain_real_img, log2(FFTBINS), stbl);
+       bit_reverse((*tr)->frequency_domain_real_img,log2(FFTBINS));
+       tr = tr+1;
     }
   }
 
-  bit_reverse(c, log2(FFTBINS));
-  iFFT(c, log2(FFTBINS), stbl);
-  for (int i = 0; i < FFTBINS; i++) {
-    printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
-  
-  }
 }

@@ -34,6 +34,7 @@ typedef struct {
   unsigned int size;
   char name[4];
 } header2_t;
+
 typedef struct {
   char name[4];
   unsigned int size;
@@ -62,15 +63,18 @@ typedef struct {
 } pgen_t;
 typedef pgen_t pgen;
 typedef struct {
-  char data[10];
+  char sfModSrcOper[2];
+  unsigned short gen_operator;
+  short modAmount;
+  char sfModAmtSrcOper;
+  short fModTransOper;
 } pmod;
+
 typedef struct {
   char name[20];
   unsigned short ibagNdx;
 } inst;
-typedef struct {
-  char data[10];
-} imod;
+typedef pmod imod;
 typedef union {
   uint8_t hi, lo;
   unsigned short val;

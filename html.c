@@ -24,6 +24,9 @@ static inline void file_get_contents(FILE *fd, char *ptr) {
   fread(ptr, 1, size, fd);
 }
 
+const char *notestr[12] = {"A",  "A#", "B", "C",  "C#", "D",
+                           "D#", "E",  "F", "F#", "G",  "G#"};
+
 int main(int argc, char **argv) {
   char *readff = argc > 2 ? argv[2] : "file.sf2";
 
@@ -65,10 +68,10 @@ int main(int argc, char **argv) {
                                                  : sampl->originalPitch) *
                         100.0f +
                     zones->CoarseTune * 100 + zones->FineTune;
-      fprintf(output, "<td>%hu-%hu</td>", zones->VelRange.lo,
-              zones->VelRange.hi);
-      fprintf(output, "<td> %hu-%hu </td>", zones->KeyRange.lo,
+      fprintf(output, "<td>%hu-%hu</td>", zones->KeyRange.lo,
               zones->KeyRange.hi);
+      fprintf(output, "<td> %hu-%hu </td>", zones->VelRange.lo,
+              zones->VelRange.hi);
       fprintf(output,
               "<td><a href='javascript:;' class='pcm' sr='%d' file='%s' ",
               sampl->sampleRate, readff);
@@ -100,8 +103,14 @@ int main(int argc, char **argv) {
         fprintf(output, "%hd%s", attrs[i], i < 59 ? "," : "");
       }
       fprintf(output, "'>attrs</a></td>");
-
       echo("</tr>");
+      echo("<tr><td colspan=9>");
+      for (int i = zones->KeyRange.lo; i < zones->KeyRange.hi; i++) {
+        fprintf(output, "<a href='javascript:;' class='pcm' sr='%d' file='%s' ",
+                sampl->sampleRate, readff);
+      }
+      echo("</td></tr>");
+
       zones++;
     }
     echo("</tbody></table></details>");

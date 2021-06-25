@@ -2,10 +2,10 @@
 #include <math.h>
 extern "C" {
 #include "../libs/biquad.c"
-#include "../runtime.c"
-#include "../sf2.c"
-#include "../tictok.c"
+#include "../runtime/runtime.c"
+#include "../sf2/sf2.c"
 }
+
 class CtxTest : public ::testing::Test {
  protected:
   void SetUp() override {
@@ -70,11 +70,7 @@ TEST_F(CtxTest, drums) {
 }
 TEST_F(CtxTest, BEnch) {
   for (int i = 0; i < nphdrs; i++) {
-    TIC()
-
     ASSERT_NO_FATAL_FAILURE(findPresetZones(i, findPresetZonesCount(i)));
-    TOK()
-    ASSERT_LT(tiktoktime(), 10e7);
   }
   PresetZones tr = findPresetByName("Trumpet");
   ASSERT_NE(tr.zones, nullptr);
@@ -87,7 +83,7 @@ TEST_F(CtxTest, findpresetZones) {
     ASSERT_GT(g_ctx->channels[2].pzset.npresets, 0);
 
     for (int j = 0; j < 125; j++) {
-      ASSERT_GT(get_sf(2, j, 55), 0);
+      ASSERT_GT(get_sf(2, 55, 55), 0);
     }
   }
 }

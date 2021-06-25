@@ -78,6 +78,7 @@ void render(ctx_t *ctx);
 
 void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx));
 void loop(voice *v, float *output, channel_t ch);
+void loopreal(voice *v, double *output);
 float p2over1200(float x);
 float centdblut(float x);
 float midiCBlut(int midi);

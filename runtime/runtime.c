@@ -10,7 +10,7 @@
 #include "../includes/sf2.h"
 
 #define minf(a, b) a < b ? a : b;
-
+void loopreal(voice *v, double *output);
 //(presetZones[i].zones[j].KeyRange & 0x7f00) >> 8)
 int get_sf(int channelNumer, int key, int vel) {
   channel_t ch = g_ctx->channels[channelNumer];
@@ -109,18 +109,15 @@ float calcratio(zone_t *z, shdrcast *sh, int midi) {
 #define trval (*tr)
 #define trshift &((*tr)->next)
 void loop(voice *v, float *output, channel_t ch) {
+  loopreal(v, (double *)output);  // float *output);
+}
+void loopreal(voice *v, double *output) {
   uint32_t loopLength = v->endloop - v->startloop;
 
-  float volume_gain = v->attenuate * ch.midi_volume;
+  float volume_gain = v->attenuate;  //* ch.midi_volume;
   float g_left = v->panLeft * volume_gain;
   float g_right = v->panRight * volume_gain;
   float modEG = envShift(v->moddvol) / -960.0f;
-  // v->lpf = BiQuad_new(
-  //     LPF, v->z->FilterQ / 10.0f,
-  //     powf(2,
-  //          (float)(v->z->FilterFc + modEG * v->z->ModEnv2FilterFc) /
-  //          1200.0f),
-  //     g_ctx->sampleRate, 1.0);
   for (int i = 0; i < g_ctx->samples_per_frame; i++) {
     modEG = envShift(v->moddvol) / -960.0f;
 
@@ -129,16 +126,13 @@ void loop(voice *v, float *output, channel_t ch) {
     float f2 = *(sdta + v->pos + 1);
     float f3 = *(sdta + v->pos + 2);
 
-    float o1 = *(output + 2 * i + 1);
-    float o2 = *(output + 2 * i);
     float gain = hermite4(v->frac, fm1, f1, f2, f3);
-    // gain *= 1;  // centdblut(envShift(v->ampvol));
-    // if (v->lpf != NULL) {
-    //   gain = BiQuad(gain, v->lpf);  // 1.0;  //	printf("\t %f
-    //   %f\n",gain);
-    // }
-    *(output + 2 * i) += gain;  // * v->panRight;
-    *(output + 2 * i + 1) += gain * v->panRight;
+    gain *= centdblut(envShift(v->ampvol));
+    if (v->lpf != NULL) {
+      gain = BiQuad(gain, v->lpf);
+    }
+    *(output + 2 * i) += (double)gain * v->panLeft;
+    *(output + 2 * i + 1) += (double)gain * v->panRight;
 
     v->frac += v->ratio * p2over1200(modEG * v->z->ModEnv2Pitch);
     while (v->frac >= 1.0f) {
@@ -229,7 +223,7 @@ void setProgram(int channelNumber, int presetId) {
 void noteOn(int channelNumber, int midi, int vel, unsigned long when) {
   //	assert(g_ctx->channels[channelNumber].pzset.npresets > 0);
   // g_ctx->channels[channelNumber].voices = NULL;
-  void noteOff(int channelNumber, int midi);
+  // void noteOff(int channelNumber, int midi);
 
   get_sf(channelNumber, midi, vel);
 }

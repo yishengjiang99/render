@@ -29,7 +29,7 @@
       "command": "/usr/bin/gcc",
       "args": [
         "-g",
-        "${file}",
+        "${file}","build/libsf2.a","build/libwavetable_oscillator.a", "build/libfft.a","build/libruntime.a",
         "-o",
         "${fileDirname}/${fileBasenameNoExtension}"
       ],
