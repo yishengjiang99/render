@@ -63,5 +63,3 @@ void initLUTs() {
   }
   fprintf(f, "%ff};", 8.176f * 2);
 }
-
-int main() { initLUTs(); }

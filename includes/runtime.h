@@ -45,6 +45,8 @@ typedef struct {
   float midi_pan;
   PresetZones *pzset;
   voice *voices;
+  voice *fadeIn;
+  voice *fadeOut;
 } channel_t;
 
 typedef struct _ctx {

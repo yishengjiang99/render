@@ -180,7 +180,7 @@ PresetZones findPresetZones(int i, int nregions) {
     pgen_t *lastg = pgens + pg[j + 1].pgen_id;
     int pgenId = pg->pgen_id;
     int lastPgenId = j < npbags - 1 ? pbags[j + 1].pgen_id : npgens - 1;
-
+    attrs[Unused1 + pbg_attr_cache_index] = j;
     for (int k = pgenId; k < lastPgenId; k++) {
       pgen *g = pgens + k;
       if (g->genid != Instrument) {
@@ -203,11 +203,15 @@ PresetZones findPresetZones(int i, int nregions) {
               ibg == ibgId ? default_ibagcache_idex : ibg_attr_cache_index;
           lastSampId = -1;
           ibag *ibgg = ibags + ibg;
+          attrs[Unused2 + default_ibagcache_idex] = ibg;
+
           pgen_t *lastig = ibg < nibags - 1 ? igens + (ibgg + 1)->igen_id
                                             : igens + nigens - 1;
+
           for (pgen_t *g = igens + ibgg->igen_id; g->genid != 60 && g != lastig;
                g++) {
             sanitizedInsert(attrs, attr_inex + g->genid, g);
+
             if (g->genid == SampleId) {
               short zoneattr[60] = defattrs;
               int add = 1;
@@ -259,22 +263,21 @@ PresetZones findPresetZones(int i, int nregions) {
 
 filtered_zone_result filterForZone(PresetZones *pset, int key, int vel) {
   zone_t *zones = pset->zones;
-  zone_t *last = pset->zones + pset->npresets;
+  zone_t *last = pset->zones + pset->npresets - 1;
   int found = 0;
   zone_t *foundPtr[3];
-  for (zone_t *zones = 0; zones != last; zones++) {
-    if (zones == NULL) continue;
-    if (vel > -1 && (zones->VelRange.lo > vel || zones->VelRange.hi < vel))
-      continue;
-    if (key > -1 && (zones->KeyRange.lo > key || zones->KeyRange.hi < key))
-      continue;
+  for (int i = 0; i < pset->npresets; i++) {
+    zone_t *z = zones + i;
+    if (z == NULL) break;
+    if (vel > -1 && (z->VelRange.lo > vel || z->VelRange.hi < vel)) continue;
+    if (key > -1 && (z->KeyRange.lo > key || z->KeyRange.hi < key)) continue;
 
-    foundPtr[found] = &*zones;
+    foundPtr[found] = z;
     found++;
   }
   if (!found && vel > -1) return filterForZone(pset, key, -1);
   if (!found && key > -1) return filterForZone(pset, -1, vel);
 
-  return (filtered_zone_result){foundPtr, found};
+  return (filtered_zone_result){found, foundPtr[0]};
 }
 #endif

@@ -40,13 +40,11 @@ TEST_F(CtxTest, defaultattrs) {
   } while (0)
 // Demonstrate some basic assertions.
 TEST_F(CtxTest, basicRuntime) {
-  SCOPED_TRACE("100");
-
   EXPECT_NE(g_ctx, nullptr);
-  setProgram(0, 0);
-  EXPECT_EQ(g_ctx->channels[0].pzset->hdr.pid, 0);
+  setProgram(0, phdrs[0].pid);
+  EXPECT_EQ(g_ctx->channels->pzset->hdr.pid, phdrs[0].pid);
   ASSERT_NO_THROW(noteOn(0, 77, 99, 0));
-  ASSERT_NE(g_ctx->channels[0].voices, nullptr);
+  ASSERT_NE(g_ctx->channels->voices, nullptr);
 }
 
 TEST_F(CtxTest, writeTofile) {
@@ -55,7 +53,7 @@ TEST_F(CtxTest, writeTofile) {
 
   g_ctx->outputFD = fopen("t.pcm", "w");
 
-  EXPECT_NO_THROW(render_fordr(g_ctx, 1, nullptr));
+  EXPECT_NO_THROW(render_fordr(g_ctx, 1, NULL));
   pclose(g_ctx->outputFD);
 }
 TEST_F(CtxTest, drums) {

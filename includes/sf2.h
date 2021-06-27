@@ -152,9 +152,10 @@ PresetZones findPresetByName(const char *name);
 int findPresetZonesCount(int i);
 void readsf(char *filename);
 typedef struct {
-  zone_t **filteredZones;
-  int nfound;
+   int nfound;
+  zone_t *filtered;
 } filtered_zone_result;
+
 filtered_zone_result filterForZone(PresetZones *pset, int key, int vel);
 
 enum grntypes {

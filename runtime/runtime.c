@@ -136,18 +136,13 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   v->next = NULL;
   shdrcast *sh = (shdrcast *)(shdrs + z->SampleId);
   v->chid = cid;
-  insertV(&g_ctx->channels[cid].voices, v);
-  v->start = sh->start +
-             ((unsigned short)(z->StartAddrCoarseOfs & 0x7f) << 15) +
-             (unsigned short)(z->StartAddrOfs & 0x7f);
-  v->end = sh->end + ((unsigned short)(z->EndAddrCoarseOfs & 0x7f) << 15) +
-           (unsigned short)(z->EndAddrOfs & 0x7f);
-  v->endloop = sh->endloop +
-               ((unsigned short)(z->EndLoopAddrCoarseOfs & 0x7f) << 15) +
-               (unsigned short)(z->EndLoopAddrOfs & 0x7f);
-  v->startloop = sh->startloop +
-                 (unsigned short)(z->StartLoopAddrCoarseOfs & 0x7f << 15) +
-                 (unsigned short)(z->StartLoopAddrOfs & 0x7f);
+  // insertV(&g_ctx->channels[cid].voices, v);
+  v->start = sh->start + (z->StartAddrCoarseOfs << 15) + z->StartAddrOfs;
+  v->end = sh->end +( z->EndAddrCoarseOfs << 15 )+ z->EndAddrOfs;
+  v->endloop = sh->endloop + (z->EndLoopAddrCoarseOfs << 15) + z->EndLoopAddrOfs;
+  v->startloop = sh->startloop + (z->StartLoopAddrCoarseOfs
+                 << 15 )+ z->StartLoopAddrOfs;
+
   v->ampvol = newEnvelope(z->VolEnvDelay, z->VolEnvAttack, z->VolEnvHold,
                           z->VolEnvRelease, z->VolEnvDecay, z->VolEnvSustain,
                           g_ctx->sampleRate);
@@ -155,29 +150,26 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   v->moddvol = newEnvelope(z->ModEnvDelay, z->ModEnvAttack, z->ModEnvHold,
                            z->ModEnvRelease, z->ModEnvDecay, z->ModEnvSustain,
                            g_ctx->sampleRate);
+
   v->ratio = calcratio(z, sh, midi);
   v->pos = v->start;
   v->frac = 0.0f;
   v->z = z;
   v->midi = midi;
   v->velocity = vel;
+  v->attenuate = powf(10.0, (z->Attenuation / 10) * 0.05f);
   float velratio = (127.0f / (float)vel) * (127.0f / (float)vel);
-  float velgain =
-      powf(10.0, (velratio * velratio - z->Attenuation / 10) * 0.05f);
 
-  v->panLeft = panLeftLUT(z->Pan);
-  v->panRight = (1 - v->panLeft);
-  v->attenuate =
-      powf(10.0, (velratio * velratio - z->Attenuation / 10) * 0.05f);
+  v->panLeft = 0.5f + sinf((float)(Pan - 500.0f) / 1000.0f * M_2_PI);
 
-  if (z->FilterFc < 14000) {
+  v->panRight = 0.5f + sinf((float)(Pan + 500.0f) / 1000.0f * M_2_PI);
+  if (z->FilterFc * 2 < sh->sampleRate) {
     v->lpf = BiQuad_new(LPF, z->FilterQ / 10.0f,
-                        powf(2, (float)z->FilterFc / 1200.0f),
-                        g_ctx->sampleRate, 1.0);
+                        p2over1200((float)z->FilterFc - 6900) * 440.0f,
+                        sh->sampleRate, 1.0);
   }
-  g_ctx->refcnt++;
+  
   return v;
-  // insertV(&(g_ctx->channels[channelNumber].voices), v);
 }
 
 ctx_t *init_ctx() {
@@ -205,16 +197,12 @@ void noteOn(int channelNumber, int midi, int vel, unsigned long when) {
   //	assert(g_ctx->channels[channelNumber].pzset.npresets > 0);
   // g_ctx->channels[channelNumber].voices = NULL;
   // void noteOff(int channelNumber, int midi);
-  channel_t *ch = &(g_ctx->channels[channelNumber]);
+  channel_t *ch = g_ctx->channels + channelNumber;
   filtered_zone_result result =
       filterForZone(ch->pzset, midi, vel);  // (channelNumber, midi, vel);
-  if (result.nfound >= 1)
-    newVoice(result.filteredZones[0], midi, vel, channelNumber);
-  if (result.nfound >= 2)
-    newVoice(result.filteredZones[1], midi, vel, channelNumber);
-  if (result.nfound == 0)
-    printf("warn--- not found for midi note %d at channel %d", midi,
-           channelNumber);
+  insertV(&ch->fadeIn, newVoice(result.filtered,midi,vel,channelNumber));
+  insertV(&ch->fadeIn, newVoice(result.filtered+1,midi,vel,channelNumber));
+
 }
 
 void noteOff(int i, int midi) {
@@ -278,21 +266,28 @@ void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx)) {
     duration -= 0.00266f;
   }
 }
-#define debsug 1
+#define d34ebug 1
 #ifdef debug
 #include <assert.h>
+FILE *ffp(int ac, int ar) {
+  char cmd[1024];
 
-#include "call_ffp.c"
-#include "sf2.c"
+  sprintf(cmd, "ffplay -loglevel panic -nodisp -i pipe:0 -f f32le -ac %d -ar %d", ac,
+          ar);
+  FILE *ffplay = popen(cmd, "w");
+
+  if (!ffplay) perror("cmd fail");
+  return ffplay;
+}
+
 void cb(ctx_t *ctx) {
   for (int i = 0; i < 128; i++) printf("\n%f", ctx->outputbuffer[0]);
 }
 int main() {
   init_ctx();
-  FILE *f = fopen("GeneralUserGS.sf2", "rb");
-  if (!f) perror("oaffdf");
 
-  readsf(f);
+
+  readsf("file.sf2");
 
   g_ctx->outputFD = ffp(2, 48000);
   g_ctx->mastVol = 1.0f;
@@ -341,6 +336,6 @@ float panLeftLUT(short Pan) {
   if (Pan > 500) {
     return 0.0f;
   } else {
-    return 0.5f + pan[Pan + 500];
+    return 0.5f + sinf((float)(Pan - 500.0f) / 1000.0f * M_2_PI);
   }
 }
