@@ -120,7 +120,7 @@ void *info;
 int nsamples;
 float *sdta;
 int sdtastart;
-
+// ModLFO2Pitch, VibLFO2Pitch,ModLFO2FilterFc,
 typedef struct {
   unsigned short StartAddrOfs, EndAddrOfs, StartLoopAddrOfs, EndLoopAddrOfs,
       StartAddrCoarseOfs;

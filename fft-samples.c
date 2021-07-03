@@ -35,8 +35,7 @@ int main(int argc, char** argv) {
 
   wavetable_oscillator_data* osc = malloc(sizeof(wavetable_oscillator_data));
 
-
-  char* sf2file = argc > 1 ? argv[1] : "file.sf2";
+  char* sf2file = "static/GeneralUserGS.sf2";
   char outfile[1024];
   double sinetable[FFTBINS << 2];
   memcpy(sinetable, stbl, (FFTBINS << 2) * sizeof(double));
@@ -55,22 +54,20 @@ void init_detailed_wavtables(int pid, int bankid) {
   setProgram(cid, pid);
   PresetZones *pz = presetZones+pid;
   complex c[FFTBINS];
-  
+
   for (int i = 0; i < pz->npresets - 1; i++) {
-    zone_t *z =pz->zones + i;
+    
+    zone_t* z = pz->zones + i;
+    if(z->KeyRange.hi-z->KeyRange.lo>23) continue;
     shdrcast* sh = (shdrcast*)(shdrs + z->SampleId);
     g_ctx->sampleRate = sh->sampleRate;
-    voice* v = newVoice(z, z->KeyRange.hi, z->VelRange.hi, cid);
-    wavetable_frame *frames = malloc(sizeof(wavetable_frame)*10);
-    wavetable_frame** tr = &frames;
-
-    for (int f = 0; f < 110; f++) {
-      // g_ctx->outputbuffer = (*tr)->frequency_domain_real_img;
-      loopreal(v, (double*)(*tr)->frequency_domain_real_img);
-       FFT((*tr)->frequency_domain_real_img, log2(FFTBINS), stbl);
-       bit_reverse((*tr)->frequency_domain_real_img,log2(FFTBINS));
-       tr = tr+1;
+    voice* v = newVoice(z, 40, 77, cid);  // z->VelRange.hi, cid);
+    float output[4096];
+    for (int o = 0; o < 48000; o += 128) {
+      loop(v, output, g_ctx->channels[0]);
+      fwrite(output, sizeof(float), 128, stdout);
+      //usleep(1e3*2.5);
     }
-  }
 
+  }
 }

@@ -37,5 +37,4 @@ system("chrome-cli execute 'alert(\"hi\")'");
     // char buf[1024];
     // fread(buf,1024,1,proc);
     // fwrite(buf,1024,1,stdout);
-
-} emcc readriff_standalone.c -s EXPORTED_FUNCTIONS=["readRiff"] -o readriff.js
+}
