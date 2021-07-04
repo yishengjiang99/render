@@ -218,6 +218,16 @@ async function run_sf2_smpl(
   );
   const releaseTime = Math.pow(2, zone.VolEnvRelease / 1200);
 
+<<<<<<< Updated upstream
+=======
+  const scriptproc = ctx.createScriptProcessor(FFTSize, 1, 1);
+  abs
+    .connect(volumeEnveope)
+    .connect(lpf)
+
+    .connect(ctx.destination);
+
+>>>>>>> Stashed changes
   abs.start();
 
   const rendJoin = ctx.startRendering();
@@ -325,10 +335,17 @@ function pt_code() {
 			//@ts-ignore
 			if(inputList[0] && inputList[0][0]){
 				outputList[0][0].set(inputList[0][0]);
+<<<<<<< Updated upstream
 				for(let i=0;i<inputList[0][0].length; i++){
 					this.disk[this.wptr+=2]=inputList[0][0];
 				}
 				if(this.wptr>N*2) this.wptr=0;
+=======
+				// for(let i=0;i<inputList[0][0].length; i++){
+				// 	this.disk[this.wptr+=2]=inputList[0][0];
+				// }
+				// if(this.wptr>N*2) this.wptr=0;
+>>>>>>> Stashed changes
 			}
 
 			return true;
