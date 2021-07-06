@@ -37,7 +37,9 @@ int main(int argc, char **argv) {
       "  main{display:grid;grid-template-columns:1fr 1fr;}"
       "aside{    position: fixed;top: 20px;right: 0px;    display: grid;}"
       "</style></head>"
-      "<body>"
+      "<body>using the sf2 font file font on ther internet: <a "
+      "href='http://www.schristiancollins.com/generaluser.php' "
+      "target=_blank>http://www.schristiancollins.com/generaluser.php</a>"
       "<script type='module' src='./dist/playsample.js'></script>"
       "<aside id='details'></aside>"
       "<main><div>");
@@ -56,7 +58,6 @@ int main(int argc, char **argv) {
         "<td>keyrange</td>"
         "<td>velrange</td>"
         "<td>attenuate</td><td>modfilter</td><td>mod2pitch</td>"
-        "<td>mod_sustain</td>"
         "<td>filter</td><td>pitch</td>"
         "<td colspan=4>lfomods</td>"
         "<td>samprate</td><td>loopLength</td>"
