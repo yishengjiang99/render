@@ -25,13 +25,14 @@ void printHTML(char *readff);
 const char *ext = ".xml";
 int main(int argc, char **argv) {
   char *readff = argc > 1 ? argv[1] : "file.sf2";
+  char *outfile = argc > 2 ? argv[2] : "file.xml";
   readsf(readff);
-  output = fopen(mktemp("u"),"w");
+  output = fopen(outfile, "w");
 
   echo("<?xml version=\"1.0\" encoding=\"ascii\"?>");
   echo("<List>");
-  for (int i = 0; i < 128; i++) {
-    PresetZones *pz = findByPid(i, 0);
+  for (int i = 0; i < 255; i++) {
+    PresetZones *pz = findByPid(i & 0x7f, i & 0x80);
     if (!pz || pz->npresets == 0) continue;
     zone_t *zones = pz->zones;
     shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);
