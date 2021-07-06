@@ -1,10 +1,31 @@
-cod<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
+  <style>body{background-color:"black"; color:"white";}</style>
   <body>
-    press any key to download
+    press any key to download<canvas></canvas>
   </body>
-  <script>
+  <script>WebAssembly.instantiateStreaming(fetch("midi.wasm"),{
+    env:{},
+  }).then(ret=>{
+    ret._load("")
+  })
+  </script>
+  <script type=module>
+  
+import { mkcanvas, resetCanvas, chart, HEIGHT, WIDTH } from "./chart/chart.js";
+    import { fftmod } from "./fft-64bits/FFT.js";
+
+    const cag=document.querySelector('canvas')
+
     function main() {
+      const {readable,writable} = new TransformStream();
+      const fftworker = new Worker("fftworker.js", { type: "module" });
+
+      const offscreen = cag.transferControlToOffscreen();
+      fftworker.postMessage({FFTSize:32, canvas:offscreen, inputPCM: readable },[readable,offscreen]);
+      fftworker.onerror=console.error;
+      fftworker.onmessageerror=console.error;
+
       document.body.innerHTML = "rendering";
       const ctx = new OfflineAudioContext(1, 48000, 48000);
       const osc1 = new OscillatorNode(ctx, { frequency: 440, type: "sine" });

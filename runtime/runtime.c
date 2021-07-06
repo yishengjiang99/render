@@ -1,13 +1,10 @@
-#include "../includes/runtime.h"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <strings.h>
 
-
-#include "../includes/biquad.h"
+#include "index.h"
 #include "luts.c"
-#include "../includes/sf2.h"
 
 #define minf(a, b) a < b ? a : b;
 void loopreal(voice *v, double *output);
@@ -138,10 +135,11 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   v->chid = cid;
   // insertV(&g_ctx->channels[cid].voices, v);
   v->start = sh->start + (z->StartAddrCoarseOfs << 15) + z->StartAddrOfs;
-  v->end = sh->end +( z->EndAddrCoarseOfs << 15 )+ z->EndAddrOfs;
-  v->endloop = sh->endloop + (z->EndLoopAddrCoarseOfs << 15) + z->EndLoopAddrOfs;
-  v->startloop = sh->startloop + (z->StartLoopAddrCoarseOfs
-                 << 15 )+ z->StartLoopAddrOfs;
+  v->end = sh->end + (z->EndAddrCoarseOfs << 15) + z->EndAddrOfs;
+  v->endloop =
+      sh->endloop + (z->EndLoopAddrCoarseOfs << 15) + z->EndLoopAddrOfs;
+  v->startloop =
+      sh->startloop + (z->StartLoopAddrCoarseOfs << 15) + z->StartLoopAddrOfs;
 
   v->ampvol = newEnvelope(z->VolEnvDelay, z->VolEnvAttack, z->VolEnvHold,
                           z->VolEnvRelease, z->VolEnvDecay, z->VolEnvSustain,
@@ -168,7 +166,7 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
                         p2over1200((float)z->FilterFc - 6900) * 440.0f,
                         sh->sampleRate, 1.0);
   }
-  
+
   return v;
 }
 
@@ -200,9 +198,8 @@ void noteOn(int channelNumber, int midi, int vel, unsigned long when) {
   channel_t *ch = g_ctx->channels + channelNumber;
   filtered_zone_result result =
       filterForZone(ch->pzset, midi, vel);  // (channelNumber, midi, vel);
-  insertV(&ch->fadeIn, newVoice(result.filtered,midi,vel,channelNumber));
-  insertV(&ch->fadeIn, newVoice(result.filtered+1,midi,vel,channelNumber));
-
+  insertV(&ch->fadeIn, newVoice(result.filtered, midi, vel, channelNumber));
+  insertV(&ch->fadeIn, newVoice(result.filtered + 1, midi, vel, channelNumber));
 }
 
 void noteOff(int i, int midi) {
@@ -272,7 +269,8 @@ void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx)) {
 FILE *ffp(int ac, int ar) {
   char cmd[1024];
 
-  sprintf(cmd, "ffplay -loglevel panic -nodisp -i pipe:0 -f f32le -ac %d -ar %d", ac,
+  sprintf(cmd,
+          "ffplay -loglevel panic -nodisp -i pipe:0 -f f32le -ac %d -ar %d", ac,
           ar);
   FILE *ffplay = popen(cmd, "w");
 
@@ -285,7 +283,6 @@ void cb(ctx_t *ctx) {
 }
 int main() {
   init_ctx();
-
 
   readsf("file.sf2");
 
