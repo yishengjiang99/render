@@ -1,1 +1,1 @@
-node_modules/fft-64bit/FFT.js
+fft-64bits/FFT.js

@@ -137,6 +137,7 @@ typedef struct {
   short Keynum, Velocity, Attenuation, Reserved2, EndLoopAddrCoarseOfs,
       CoarseTune, FineTune, SampleId, SampleModes, Reserved3, ScaleTune,
       ExclusiveClass, OverrideRootKey, Dummy;
+  struct zone_t *zone_offsets;
 } zone_t;
 typedef struct {
   phdr hdr;
