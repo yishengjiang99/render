@@ -10,24 +10,16 @@ char outputff[1024];
 int matched;
 #define echo(str) fprintf(output, "%s", str);
 
-#define min(a, b) a < b ? a : b
-static inline void file_get_contents(FILE *fd, char *ptr) {
-  fseek(fd, 0, SEEK_END);
-  long size = ftell(fd);
-  fseek(fd, 0, SEEK_SET);
-  fread(ptr, 1, size, fd);
-}
-
 const char *notestr[12] = {"A",  "A#", "B", "C",  "C#", "D",
                            "D#", "E",  "F", "F#", "G",  "G#"};
 
 void printHTML(char *readff);
 const char *ext = ".xml";
 int main(int argc, char **argv) {
-  char *readff = argc > 1 ? argv[1] : "file.sf2";
-  char *outfile = argc > 2 ? argv[2] : "file.xml";
+  char *readff = "./file.sf2";
+  // char *outfile = argc > 2 ? argv[2] : "file.xml";
   readsf(readff);
-  output = fopen(outfile, "w");
+  output = stdout;
 
   echo("<?xml version=\"1.0\" encoding=\"ascii\"?>");
   echo("<List>");
@@ -38,10 +30,9 @@ int main(int argc, char **argv) {
     shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);
 
     fprintf(output,
-            "<Preset pid='%d' bankid='%d'> "
-            "<Name><![CDATA[%s]]></Name>"
-            "<size>%d</size>",
-            pz->hdr.pid, pz->hdr.bankId, pz->hdr.name, pz->npresets);
+            "<Preset pid='%d' bankid='%d' npresets='%d'> "
+            "<Name><![CDATA[%s]]></Name>",
+            pz->hdr.pid, pz->hdr.bankId, pz->npresets, pz->hdr.name);
 
     for (int z = 0; z < pz->npresets; z++) {
       float pitch = (zones->OverrideRootKey > -1 ? zones->OverrideRootKey
@@ -52,18 +43,20 @@ int main(int argc, char **argv) {
       short *attrs = (short *)zones;
 
       fprintf(output,
-              "<Zone lokey='%d' hikey='%d' lovel='%d' hivel='%d' "
+              "<sf-zone lokey='%d' hikey='%d' lovel='%d' hivel='%d' "
               "class='attlist' sr='%d' file='%s' "
               "range='bytes=%u-%u' endloop='%u' startloop='%u' "
-              "pitch='%.0f' zone='", zones->KeyRange.lo,zones->KeyRange.hi,zones->VelRange.lo,zones->KeyRange.hi,
-              sampl->sampleRate, readff, sdtastart + 2 * sampl->start,
-              sdtastart + 2 * sampl->end + 1, sampl->endloop - sampl->start,
-              sampl->startloop - sampl->start, pitch);
+              "pitch='%.0f' zone='",
+              zones->KeyRange.lo, zones->KeyRange.hi, zones->VelRange.lo,
+              zones->KeyRange.hi, sampl->sampleRate, readff,
+              sdtastart + 2 * sampl->start, sdtastart + 2 * sampl->end + 1,
+              sampl->endloop - sampl->start, sampl->startloop - sampl->start,
+              pitch);
 
       for (int i = 0; i < 60; i++) {
         fprintf(output, "%hd%s", attrs[i], i < 59 ? "," : "");
       }
-      fprintf(output, "'>sample</Zone>\n");
+      fprintf(output, "'>%s</sf-zone>\n", sampl->name);
 
       zones++;
     }

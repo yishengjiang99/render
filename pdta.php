@@ -1,9 +1,8 @@
 <?php
-$sff=isset($_GET['sf']) ? 'sf2/'.$_GET['sf'] : dirname(__FILE__).'/file.sf2';
-$conte=file_get_contents($sff);
-$parts=explode("pdta",$conte);
-if($parts){
-	header("Content-Type: application/stream-octet");
-	die($parts[1]);
+$buf=[];
+$o=fopen("php://output","wb");
+header("Content-Type: Application/xml");
+$ap=popen("mkxml","r");
+while(!feof($ap)){
+	fwrite($o,fread($ap,1024));
 }
-die(404);

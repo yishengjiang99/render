@@ -27,7 +27,7 @@ typedef struct _voice {
   shdrcast *sample;
   unsigned int start, end, startloop, endloop;
   uint32_t pos;
-  float frac;
+  float *frac;
   float ratio;
   adsr_t *ampvol, *moddvol;
   int midi;

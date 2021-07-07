@@ -3,7 +3,7 @@
 FILE *ffp(int ac, int ar) {
   char cmd[1024];
 
-  sprintf(cmd, "ffplay -loglevel panic -nodisp -i pipe:0 -f f32le -ac %d -ar %d", ac,
+  sprintf(cmd, "ffplay -loglevel panic -i pipe:0 -f f32le -ac %d -ar %d", ac,
           ar);
   FILE *ffplay = popen(cmd, "w");
 
@@ -14,7 +14,7 @@ FILE *ffp(int ac, int ar) {
 FILE *wavepic(char *png_name) {
   char cmd[1024];
   sprintf(cmd,
-          "ffmpeg -hide_banner -loglevel panic -y -f f32le -ac 2 -ar 48000 -i "
+          "ffmpeg -hide_banner -loglevel panic -y -f f32le -ac 1 -ar 48000 -i "
           "pipe:0 -filter_complex 'showwavespic=s=640x120' -frames:v 1 %s",
           png_name);  // ac, ar);
   FILE *ffwavepic = popen(cmd, "w");

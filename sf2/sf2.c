@@ -261,23 +261,19 @@ PresetZones findPresetZones(int i, int nregions) {
   return (PresetZones){phdrs[i], found, zones};
 }
 
-filtered_zone_result filterForZone(PresetZones *pset, int key, int vel) {
-  zone_t *zones = pset->zones;
-  zone_t *last = pset->zones + pset->npresets - 1;
-  int found = 0;
-  zone_t *foundPtr[3];
+zone_t *filterForZone(PresetZones *pset, int key, int vel) {
+
   for (int i = 0; i < pset->npresets; i++) {
-    zone_t *z = zones + i;
+    zone_t *z = pset->zones + i;
     if (z == NULL) break;
     if (vel > -1 && (z->VelRange.lo > vel || z->VelRange.hi < vel)) continue;
     if (key > -1 && (z->KeyRange.lo > key || z->KeyRange.hi < key)) continue;
+    return z;
 
-    foundPtr[found] = z;
-    found++;
   }
-  if (!found && vel > -1) return filterForZone(pset, key, -1);
-  if (!found && key > -1) return filterForZone(pset, -1, vel);
+  if (vel > -1) return filterForZone(pset, key, -1);
+  if (key > -1) return filterForZone(pset, -1, vel);
+  return NULL;
 
-  return (filtered_zone_result){found, foundPtr[0]};
 }
 #endif

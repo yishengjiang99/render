@@ -104,6 +104,9 @@ typedef struct {
   SFSampleLink sfSampleqaType;
 } shdrcast;
 
+#define frequency(midiPitch) \
+  (440.0f * powf(2.0f, (float)(midiPitch - 69.0f) / 12.0f))
+
 int nphdrs, npbags, npgens, npmods, nshdrs, ninsts, nimods, nigens, nibags;
 
 phdr *phdrs;
@@ -137,7 +140,6 @@ typedef struct {
   short Keynum, Velocity, Attenuation, Reserved2, EndLoopAddrCoarseOfs,
       CoarseTune, FineTune, SampleId, SampleModes, Reserved3, ScaleTune,
       ExclusiveClass, OverrideRootKey, Dummy;
-  struct zone_t *zone_offsets;
 } zone_t;
 typedef struct {
   phdr hdr;
@@ -157,7 +159,7 @@ typedef struct {
   zone_t *filtered;
 } filtered_zone_result;
 
-filtered_zone_result filterForZone(PresetZones *pset, int key, int vel);
+zone_t *filterForZone(PresetZones *pset, int key, int vel);
 
 enum grntypes {
   StartAddrOfs,

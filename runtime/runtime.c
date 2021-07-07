@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "index.h"
+#include "../index.h"
 #include "luts.c"
 
 #define minf(a, b) a < b ? a : b;
@@ -71,13 +71,7 @@ float hermite4(float frac_pos, float xm1, float x0, float x1, float x2) {
 
   return ((((a * frac_pos) - b_neg) * frac_pos + c) * frac_pos + x0);
 }
-void insertV(voice **start, voice *nv) {
-  voice **tr = start;
-  nv->done = voice_rising;
-  while (*tr) tr = &((*tr)->next);
-  nv->next = *tr;
-  *tr = nv;
-}
+
 float calcratio(zone_t *z, shdrcast *sh, int midi) {
   short rt = z->OverrideRootKey > -1 ? z->OverrideRootKey : sh->originalPitch;
   float sampleTone = rt * 100.0f + z->CoarseTune * 100.0f + (float)z->FineTune;
@@ -191,114 +185,7 @@ void setProgram(int channelNumber, int presetId) {
   ch->pzset = findByPid(presetId, channelNumber == 9 ? 128 : 0);
   ch->program_number = presetId;
 }
-void noteOn(int channelNumber, int midi, int vel, unsigned long when) {
-  //	assert(g_ctx->channels[channelNumber].pzset.npresets > 0);
-  // g_ctx->channels[channelNumber].voices = NULL;
-  // void noteOff(int channelNumber, int midi);
-  channel_t *ch = g_ctx->channels + channelNumber;
-  filtered_zone_result result =
-      filterForZone(ch->pzset, midi, vel);  // (channelNumber, midi, vel);
-  insertV(&ch->fadeIn, newVoice(result.filtered, midi, vel, channelNumber));
-  insertV(&ch->fadeIn, newVoice(result.filtered + 1, midi, vel, channelNumber));
-}
 
-void noteOff(int i, int midi) {
-  channel_t ch = g_ctx->channels[i];
-  voice **tr = &ch.voices;
-
-  while (*tr) {
-    if ((*tr)->midi == midi) {
-      adsrRelease((*tr)->ampvol);
-    }
-    tr = &(*tr)->next;
-  }
-}
-
-void render(ctx_t *ctx) {
-  bzero(ctx->outputbuffer, sizeof(float) * ctx->samples_per_frame * 2);
-  int vs = 0;
-  for (int i = 0; i < 1; i++) {
-    channel_t ch = g_ctx->channels[i];
-    if (!ch.voices) continue;
-    for (voice **tr = &ch.voices; *tr; tr = &(*tr)->next) {
-      if ((*tr)->done) continue;
-      if ((*tr)->ampvol->release_steps <= 0) {
-        voice *donev = *tr;
-        (*tr)->done = voice_gc;
-        *tr = (*tr)->next;
-        g_ctx->refcnt--;
-        free(donev);
-
-      } else {
-        loop(*tr, g_ctx->outputbuffer, ch);
-      }
-    }
-  }
-
-  ctx->currentFrame++;
-  float maxv = 1.0f, redradio = 1.0f;
-  float postGain = ctx->mastVol;
-  for (int i = 0; i < ctx->samples_per_frame; i++) {
-    ctx->outputbuffer[i] *= postGain;
-    float absf = ctx->outputbuffer[i] > 0.f ? ctx->outputbuffer[i]
-                                            : -1 * ctx->outputbuffer[i];
-
-    if (absf >= maxv) {
-      // fprintf(stderr, "clipping at %f\n", absf);
-      maxv = absf;
-    }
-    ctx->outputbuffer[i] =
-        ctx->outputbuffer[i] > 1.0 ? 1.0 : ctx->outputbuffer[i];
-    ctx->outputbuffer[i] =
-        ctx->outputbuffer[i] < -1.0 ? -1.0 : ctx->outputbuffer[i];
-  }
-
-  if (ctx->outputFD != NULL)
-    fwrite(ctx->outputbuffer, ctx->samples_per_frame * 2, 4, ctx->outputFD);
-}
-void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx)) {
-  while (duration > 0.0f) {
-    render(ctx);
-    if (cb) cb(ctx);
-    duration -= 0.00266f;
-  }
-}
-#define d34ebug 1
-#ifdef debug
-#include <assert.h>
-FILE *ffp(int ac, int ar) {
-  char cmd[1024];
-
-  sprintf(cmd,
-          "ffplay -loglevel panic -nodisp -i pipe:0 -f f32le -ac %d -ar %d", ac,
-          ar);
-  FILE *ffplay = popen(cmd, "w");
-
-  if (!ffplay) perror("cmd fail");
-  return ffplay;
-}
-
-void cb(ctx_t *ctx) {
-  for (int i = 0; i < 128; i++) printf("\n%f", ctx->outputbuffer[0]);
-}
-int main() {
-  init_ctx();
-
-  readsf("file.sf2");
-
-  g_ctx->outputFD = ffp(2, 48000);
-  g_ctx->mastVol = 1.0f;
-
-  setProgram(0, 66);
-  for (int m = 33; m < 78; m++) {
-    noteOn(0, m, 6 * 10, 0);
-
-    render_fordr(g_ctx, .5, NULL);
-    noteOff(0, m);
-    render_fordr(g_ctx, .5, NULL);
-  }
-}
-#endif
 
 float p2over1200(float x) {
   if (x < -12000) return 0;
