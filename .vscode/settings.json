@@ -118,7 +118,10 @@
 		"webassembly.h": "c",
 		"random": "c",
 		"regex": "c",
-		"queue": "c"
+		"queue": "c",
+		"fastdec": "c",
+		"_types.h": "c",
+		"sf2zone.c": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "Enabled",
 	"editor.tokenColorCustomizations": {

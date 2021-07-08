@@ -1,8 +1,12 @@
 import { mkcanvas, resetCanvas, chart, HEIGHT, WIDTH } from "../chart/chart.js";
+import { wasmBinary } from "../wasmbuild/sample.js";
+
 import { fftmod } from "../fft/FFT.js";
+
+
 type PowerOfTwo = 1024 | 32 | 64 | 128 | 4096; //eye-balling the math here
-const FFTSize: PowerOfTwo = 1024;
-const fft = fftmod(1 << FFTSize);
+const FFTSize: PowerOfTwo = 4096;
+const fft = await fftmod(Math.log(FFTSize));
 const bzero = (arr: Float64Array) => arr.forEach((v) => (v = 0));
 /**
  * fetch with cache layer a section of bit16 pcm at within a byte range
@@ -69,6 +73,7 @@ const rightPanel: HTMLElement = document.querySelector("#details")!;
 document.querySelector("main")!.style.width = "10vw";
 const canvas = mkcanvas(rightPanel);
 const canvas2 = mkcanvas(rightPanel);
+const canvas3 = mkcanvas(rightPanel);
 
 const cent2sec = (cent: number) => Math.pow(2, cent / 1200);
 
@@ -92,14 +97,18 @@ window.onmousedown = async (e) => {
     );
     const midi = parseInt(btn.getAttribute("midi") || "60");
     run_sf2_smpl(parseSampleInfo(attbag), zone, smplData, midi).then(
-      (triggerAdsrRelease) => {
-        onRelease.then(triggerAdsrRelease);
+      async (triggerAdsrRelease) => {
+        await onRelease;
+        triggerAdsrRelease();
       }
     );
     if (!realctx) realctx = new AudioContext();
     if (realctx.state == "suspended") realctx.resume().then((ab) => {});
   }
 };
+function cent2freq(cent){
+  return Math.pow(2,(cent-6900)/1200)*440;
+}
 async function run_sf2_smpl(
   sampleInfo: any,
   zone: any,
@@ -107,17 +116,14 @@ async function run_sf2_smpl(
   midi: any
 ) {
   const { sr, startloop, pitch, endloop, file, range } = sampleInfo;
-  const ctx = new OfflineAudioContext(1, sr, sr);
+  const ctx = new OfflineAudioContext(1, FFTSize, FFTSize);
   const audb = ctx.createBuffer(2, smplData.length, sr);
 
   audb.getChannelData(0).set(smplData);
-
+  //ratio=((float)sh->sampleRate / (float)frequency(sh->originalPitch)) / 4096.0f
   const abs = new AudioBufferSourceNode(ctx, {
     buffer: audb,
-    playbackRate: 1,
-    loop: true,
-    loopStart: startloop / sr,
-    loopEnd: endloop / sr,
+    playbackRate: sr/cent2freq(pitch)*FFTSize
   });
   let lpf = new BiquadFilterNode(ctx, {
     frequency: Math.min(
@@ -131,7 +137,7 @@ async function run_sf2_smpl(
 
   modEnvelope.connect(lpf.frequency);
   if (zone.ModEnvAttack > -12000) {
-    modEnvelope.gain.linearRampToValueAtTime(1, cent2sec(zone.ModEnvAttack)); //Math.pow(2, (zone.ModEnvAttack) / 1200));
+    modEnvelope.gain.linearRampToValueAtTime(1, cent2sec(zone.ModEnvAttack)); \
   } else {
     modEnvelope.gain.value = 1.0;
   }
@@ -165,8 +171,13 @@ async function run_sf2_smpl(
   const flnum = ab.getChannelData(0).length;
   let readoffset = 0;
   function renderLoop() {
-    chart(canvas, ab.getChannelData(0).slice(readoffset, readoffset + 4096));
+    const sig = ab.getChannelData(0).slice(readoffset, readoffset + 4096);
+    chart(canvas, sig); //ab.getChannelData(0).slice(readoffset, readoffset + 4096));
     readoffset += 4096;
+    fft.inputPCM(sig);
+    const spec=fft.getFloatFrequencyData();
+    chart(canvas2, spec[0] );
+    chart(canvas3,fft.getWaveForm()[0])
     if (readoffset > flnum) return;
     else requestAnimationFrame(renderLoop);
   }
@@ -282,3 +293,6 @@ function pt_code() {
     )
   );
 }
+
+
+document.querySelectorAll("tbody")

@@ -34,7 +34,7 @@ void writeRiff(char *readff, char *outputff) {
   readsf(readff);
   FILE *output = fopen(outputff, "w");
   for (int i = 0; i < 128; i++) {
-    PresetZones pz = findByPid(i, 0);
+    PresetZones pz = *findByPid(i, 0);
     if (pz.npresets == 0) continue;
     fwrite(&(pz.hdr), sizeof(phdr), 1, output);
     fwrite(&(pz.npresets), sizeof(int), 1, output);
@@ -42,8 +42,8 @@ void writeRiff(char *readff, char *outputff) {
     zone_t *zone = pz.zones;
     zone_t *last = pz.zones + pz.npresets;
     while (zone != last) {
-      shdrcast *sampl = (shdrcast *)(shdrs + zone->SampleId);
-      fwrite(sampl, sizeof(shdrcast), 1, output);
+      //  shdrcast *sampl = (shdrcast *)(shdrs + zone->SampleId);
+      // fwrite(shdr, sizeof(shdrs), 1, output);
       fwrite(zone, sizeof(zone_t), 1, output);
       zone++;
     }
@@ -53,20 +53,20 @@ void writeRiff(char *readff, char *outputff) {
 void readRiff(char *ptr, int size) {
   char *last = ptr + size;
   int npresets;
-  shdrcast *smpl;
+  shdr *smpl;
   zone_t *z;
   while (ptr < last) {
     phdr *pz = (phdr *)ptr;
     ptr += sizeof(phdr);
-    int npresets = *(int *)ptr;
     ptr += sizeof(int);
-    ptr += npresets * sizeof(zone_t) + npresets * sizeof(shdrcast);
-    printf("%s \n %d \n", pz->name, npresets);
-    //     while (npresets-- >= 0) {
-    //       smpl = (shdrcast *)ptr;
-    //       ptr += sizeof(shdrcast);
-    //       z = (zone_t *)ptr;
-    //       ptr += sizeof(zone_t);
-    //     }
+     ptr += npresets * sizeof(zone_t);  // + npresets * sizeof(shdrcast);
+     printf("%s \n %d \n", pz->name, npresets);
+         void *chunk = ptr;
+
+     while (npresets-- >= 0) {
+       z = (zone_t *)chunk;
+       chunk += sizeof(zone_t);
+       printf("%hu", z->SampleId);
+    }
   }
 }

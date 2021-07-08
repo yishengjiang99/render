@@ -86,13 +86,9 @@ int main(int argc, char **argv) {
   readsf(readff);
   PresetZones *pz = findByPid(0, 0);
 
-  zone_t *zone = filterForZone(findByPid(0, 0), 44, 120);
+  zone_t *zone = *ffilterForZone(findByPid(0, 0), 44, 120);
   shdrcast *sh = (shdrcast *)(shdrs + zone->SampleId);
   int tablesize = sh->endloop - sh->startloop;
-
-  printf("%u:%u %u %f,%u-=--%f\n ", tablesize, sh->end, sh->start,
-         frequency(sh->originalPitch), sh->sampleRate,
-         (float)sh->sampleRate / (float)frequency(sh->originalPitch));
 
   printf("%hd", zone->FilterFc);
   voice_t *v = (voice_t *)malloc(sizeof(voice_t));
@@ -101,7 +97,6 @@ int main(int argc, char **argv) {
       (zone->OverrideRootKey > -1 ? zone->OverrideRootKey : sh->originalPitch) *
       100.0f;
   float pitch = rootkey + zone->CoarseTune * 100 + zone->FineTune;
-
   float pitchshift = 4400 - pitch;
   printf("\n%f \n", pitchshift);
   v->phase = sh->startloop;
@@ -109,8 +104,8 @@ int main(int argc, char **argv) {
                   powf(2, pitchshift / 1200.0f) * 440.0f;
 
   v->pos = sh->start;
-  v->ratio =
-      ((float)sh->sampleRate / (float)frequency(sh->originalPitch)) / 4096.0f;
+  v->ratio = (float)sh->sampleRate / (powf(2, (pitch - 6900) / 1200) * 440.0f) /
+             4096.0f;
   float wavetables[48000];
   for (int i = 0; i < 48000; i++) {
     float fm1 = *(sdta + v->pos - 1);

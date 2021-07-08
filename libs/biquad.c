@@ -35,17 +35,7 @@ smp_type BiQuad(smp_type sample, biquad *b) {
   result = b->a0 * sample + b->a1 * b->x1 + b->a2 * b->x2 - b->a3 * b->y1 -
            b->a4 * b->y2;
 
-  /* shift x1 to x2, sample to x1 */ #include "biquad.c"
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
-
-#include "sf2/sf2.c"
-
-      int
-      main() {
-  }
+  /* shift x1 to x2, sample to x1 */
   b->x2 = b->x1;
   b->x1 = sample;
 

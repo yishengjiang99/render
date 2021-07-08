@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
       "  main{display:grid;grid-template-columns:1fr 1fr;}"
       "  aside{ position: fixed;top: 20px;right: 0px;display: grid;}"
       "</style></head>");
-fprintf(output, "<body><header>%200s</header>",info);
+fprintf(output, "<body><header>%s</header>",info);
 echo( "using the sf2 font file font on ther internet: <a "
       "href='http://www.schristiancollins.com/generaluser.php' "
       "target=_blank>http://www.schristiancollins.com/generaluser.php</a>"
@@ -56,10 +56,11 @@ echo( "using the sf2 font file font on ther internet: <a "
         "<td>filter</td><td>pitch</td>"
         "<td colspan=3>lfo!pitch,fileter,vol</td>"
         "<td colspan=2>samprate</td>"
-        "</tr></thead><tbody>");
+        "</tr></thead>");
 
+        fprintf(output,"<tbody pid=%hd bankid=%dhd>",pz->hdr.pid, pz->hdr.bankId);
     for (int z = 0; z < pz->npresets; z++) {
-      echo("\n<tr>");
+      echo("<tr>");
       float pitch = (zones->OverrideRootKey > -1 ? zones->OverrideRootKey
                                                  : sampl->originalPitch) *
                         100.0f +
@@ -83,10 +84,11 @@ echo( "using the sf2 font file font on ther internet: <a "
 
       short *attrs = (short *)zones;
       fprintf(output,
-              "<tr><td colspan=12><a class='attlist' sr='%d' file='%s' "
+              "<tr><td colspan=12><a class='attlist' lokey=%d hikey=%d lovel=%d hivel=%d sr='%d' file='%s' "
               "range='bytes=%u-%u' endloop='%u' startloop='%u' "
               "pitch='%f' zone='",
-              sampl->sampleRate, readff, sdtastart + 2 * sampl->start,
+              zones->KeyRange.lo, zones->KeyRange.hi, zones->VelRange.lo,
+              zones->VelRange.hi, sampl->sampleRate, readff, sdtastart + 2 * sampl->start,
               sdtastart + 2 * sampl->end + 1, sampl->endloop - sampl->start,
               sampl->startloop - sampl->start, pitch);
 
@@ -94,15 +96,15 @@ echo( "using the sf2 font file font on ther internet: <a "
         fprintf(output, "%hd%s", attrs[i], i < 59 ? "," : "");
       }
       fprintf(output, "'>%s</a>", sampl->name);
-      fprintf(output, "<a midi='%d' class='pcm'>%f</a>&nbsp;",
+      fprintf(output, "<a midi='%d' class='pcm' href='#'>samp</a> &nbsp;",
               (int)(pitch / 100), pitch);
-      for (int i = zones->KeyRange.lo;
-           i <= zones->KeyRange.lo + 34 && i <= zones->KeyRange.hi; i++) {
-        if (i < 21 || i > 100) continue;
-        fprintf(output,
-                "<a href='#' midi='%d' class='pcm'>%d%s</a>&nbsp;",
-                i, i / 12, notestr[i % 12]);
-      }
+//       for (int i = zones->KeyRange.lo;
+//            i <= zones->KeyRange.lo + 34 && i <= zones->KeyRange.hi; i++) {
+//         if (i < 21 || i > 100) continue;
+//         fprintf(output,
+//                 "<a href='#' midi='%d' class='pcm'>%d%s</a>&nbsp;",
+//                 i, i / 12, notestr[i % 12]);
+//       }
       fprintf(output, "</td></tr>");
 
       zones++;

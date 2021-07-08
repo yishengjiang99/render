@@ -121,6 +121,16 @@ void loopreal(voice *v, double *output) {
     }
   }
 }
+typedef struct _voice {
+  voice_state done;
+  zone_t *z;
+  shdrcast *sample;
+  unsigned int start, end, startloop, endloop;
+  uint32_t pos;
+  float frac;
+  float ratio;
+  adsr_t *ampvol, *moddvol;
+} voice;
 
 voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   voice *v = (voice *)malloc(sizeof(voice));

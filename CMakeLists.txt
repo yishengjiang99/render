@@ -48,30 +48,11 @@ add_executable(
   html.c
 )
 
-add_executable(
-  fftsamples
-  fft-samples.c
-)
-
 target_link_libraries(
   html
   sf2
 )
 
-target_link_libraries(
-  runtime
-  sf2
-  biquad
-)
-
-target_link_libraries(
-  fftsamples
-  runtime
-  sf2
-  biquad
-  wavetable_oscillator
-  fft
-)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -85,11 +66,18 @@ add_executable(
   sf2test
   tests/sf2.test.cc
 )
-
+add_executable(
+  rendertest
+  tests/render.test.cc
+)
 target_link_libraries(
     sf2test
     gtest_main
 )
-
+target_link_libraries(
+    rendertest
+    gtest_main
+)
 include(GoogleTest)
+gtest_discover_tests(rendertest)
 gtest_discover_tests(sf2test)

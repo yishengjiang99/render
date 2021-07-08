@@ -1,12 +1,5 @@
 
 
-static inline void file_get_contents(FILE *fd, char *ptr) {
-  fseek(fd, 0, SEEK_END);
-  long size = ftell(fd);
-  fseek(fd, 0, SEEK_SET);
-  fread(ptr, 1, size, fd);
-}
-
 #define printUntil(output, str, stopword)                   \
   int m = 0;                                                \
   while (str++) {                                           \

@@ -104,9 +104,6 @@ typedef struct {
   SFSampleLink sfSampleqaType;
 } shdrcast;
 
-#define frequency(midiPitch) \
-  (440.0f * powf(2.0f, (float)(midiPitch - 69.0f) / 12.0f))
-
 int nphdrs, npbags, npgens, npmods, nshdrs, ninsts, nimods, nigens, nibags;
 
 phdr *phdrs;
@@ -119,7 +116,7 @@ imod *imods;
 igen *igens;
 shdr *shdrs;
 short *data;
-void *info;
+char *info;
 int nsamples;
 float *sdta;
 int sdtastart;
@@ -151,7 +148,7 @@ PresetZones *presetZones;
 PresetZones *findByPid(int pid, int bkid);
 
 PresetZones findPresetZones(int i, int nregions);
-PresetZones findPresetByName(const char *name);
+PresetZones *findPresetByName(const char *name);
 int findPresetZonesCount(int i);
 void readsf(char *filename);
 typedef struct {

@@ -1,5 +1,7 @@
-#include "../includes/sf2.h"
+#include <string.h>
+#include <stdlib.h>
 
+#include "../includes/sf2.h"
 PresetZones *findByPid(int pid, int bkid) {
   for (unsigned short i = 0; i < nphdrs - 1; i++) {
     if (phdrs[i].pid == pid && phdrs[i].bankId == bkid) {
@@ -181,21 +183,15 @@ PresetZones findPresetZones(int i, int nregions) {
   return (PresetZones){phdrs[i], found, zones};
 }
 
-zone_t **ffilterForZone(PresetZones *pset, int key, int vel) {
-  int npresets = 0;
-  zone_t *z = NULL;
-  zone_t **tr = &z;
+zone_t *filterForZone(PresetZones *pset, int key, int vel) {
   for (int i = 0; i < pset->npresets; i++) {
+    zone_t *z = pset->zones + i;
     if (z == 0) break;
     if (vel > -1 && (z->VelRange.lo > vel || z->VelRange.hi < vel)) continue;
     if (key > -1 && (z->KeyRange.lo > key || z->KeyRange.hi < key)) continue;
-    npresets++;
+    return z;
   }
-  zone_t **zonelist = (zone_t **)malloc(sizeof(z) * npresets);
-  for (int i = 0; i < pset->npresets; i++) {
-    if (z == 0) break;
-    if (vel > -1 && (z->VelRange.lo > vel || z->VelRange.hi < vel)) continue;
-    if (key > -1 && (z->KeyRange.lo > key || z->KeyRange.hi < key)) continue;
-    zonelist[npresets] = z;
-  }
+  if(vel>0) return filterForZone(pset,key,-1);
+  if(key>0) return filterForZone(pset,-1,vel);
+  return &pset->zones[0];
 }

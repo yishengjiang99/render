@@ -1,3 +1,5 @@
+#ifndef WAVETABLE_OSCILLATOR_H
+#define WAVETABLE_OSCILLATOR_H
 
 #include <stdint.h>
 #define NUM_OSCILLATORS 16
@@ -55,4 +57,6 @@ void wavetable_3dimensional_oscillator(
     wavetable_oscillator_data *this_oscillator);
 int wavetable_struct_size();
 void reset_oscillator(int channel);
-void set_midi(wavetable_oscillator_data *osc, uint8_t midi);
+void set_midi(wavetable_oscillator_data *osc, int midi);
+
+#endif
