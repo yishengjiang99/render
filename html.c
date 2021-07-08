@@ -11,12 +11,6 @@ int matched;
 #define echo(str) fprintf(output, "%s\n", str);
 
 #define min(a, b) a < b ? a : b
-static inline void file_get_contents(FILE *fd, char *ptr) {
-  fseek(fd, 0, SEEK_END);
-  long size = ftell(fd);
-  fseek(fd, 0, SEEK_SET);
-  fread(ptr, 1, size, fd);
-}
 
 const char *notestr[12] = {"A",  "A#", "B", "C",  "C#", "D",
                            "D#", "E",  "F", "F#", "G",  "G#"};
@@ -25,24 +19,25 @@ void printHTML(char *readff);
 
 int main(int argc, char **argv) {
   char *readff = argc > 1 ? argv[1] : "file.sf2";
-  char *filename = argc > 2 ? argv[2] : "file.html";
+  char *filename = argc > 2 ? argv[2] : "index.html";
   readsf(readff);
-  output = fopen(filename, "a");
-
+  output = fopen(filename, "w");
   echo(
       "<!DOCTYPE html>"
       "<html><head>"
       "<style>"
       "  body{background-color:black;color:white;margin:0;}"
       "  main{display:grid;grid-template-columns:1fr 1fr;}"
-      "aside{    position: fixed;top: 20px;right: 0px;    display: grid;}"
-      "</style></head>"
-      "<body>using the sf2 font file font on ther internet: <a "
+      "  aside{ position: fixed;top: 20px;right: 0px;display: grid;}"
+      "</style></head>");
+fprintf(output, "<body><header>%200s</header>",info);
+echo( "using the sf2 font file font on ther internet: <a "
       "href='http://www.schristiancollins.com/generaluser.php' "
       "target=_blank>http://www.schristiancollins.com/generaluser.php</a>"
       "<script type='module' src='./dist/playsample.js'></script>"
       "<aside id='details'></aside>"
       "<main><div>");
+
   for (int i = 0; i < 128; i++) {
     PresetZones *pz = findByPid(i, 0);
     if (pz->hdr.bankId != 0) continue;
@@ -50,8 +45,8 @@ int main(int argc, char **argv) {
     zone_t *zones = pz->zones;
     shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);
     echo("<details>");
-    fprintf(output, "   <summary> %s - %d %d (%d presets) </summary>",
-            pz->hdr.name, pz->hdr.pid, pz->hdr.bankId, pz->npresets);
+    fprintf(output, "   <summary> %d: %s (%d presets) </summary>",
+          pz->hdr.pid,  pz->hdr.name, pz->npresets);
     echo(
         "<table border=1 style='border-width:1px'>"
         "<thead><tr>"
@@ -59,8 +54,8 @@ int main(int argc, char **argv) {
         "<td>velrange</td>"
         "<td>attenuate</td><td>modfilter</td><td>mod2pitch</td>"
         "<td>filter</td><td>pitch</td>"
-        "<td colspan=4>lfomods</td>"
-        "<td>samprate</td><td>loopLength</td>"
+        "<td colspan=3>lfo!pitch,fileter,vol</td>"
+        "<td colspan=2>samprate</td>"
         "</tr></thead><tbody>");
 
     for (int z = 0; z < pz->npresets; z++) {
@@ -78,9 +73,9 @@ int main(int argc, char **argv) {
       fprintf(output, "<td>%hd</td><td>%hd</td><td>%hd</td>",
               zones->Attenuation, zones->ModEnv2FilterFc, zones->ModEnv2Pitch);
       fprintf(output, "<td>%hu(%hd)</td>", zones->FilterFc, zones->FilterQ);
-      fprintf(output, "<td>%f</td>", pitch);
-      fprintf(output, "<td>%hd</td><td>%hd</td><td>%hd</td><td>%hd</td>",
-              zones->ModLFO2Pitch, zones->VibLFO2Pitch, zones->ModLFO2FilterFc,
+      fprintf(output, "<td>%.0f</td>", pitch);
+      fprintf(output, "<td>%hd</td><td>%hd</td><td>%hd</td>",
+          zones->VibLFO2Pitch, zones->ModLFO2FilterFc,
               zones->ModLFO2Vol),
           fprintf(output, "<td>%u|%u|%u|%u</td>", sampl->sampleRate,
                   sampl->startloop - sampl->start,
@@ -105,7 +100,7 @@ int main(int argc, char **argv) {
            i <= zones->KeyRange.lo + 34 && i <= zones->KeyRange.hi; i++) {
         if (i < 21 || i > 100) continue;
         fprintf(output,
-                "<a href='javascript:;' midi='%d' class='pcm'>%d%s</a>&nbsp;",
+                "<a href='#' midi='%d' class='pcm'>%d%s</a>&nbsp;",
                 i, i / 12, notestr[i % 12]);
       }
       fprintf(output, "</td></tr>");
@@ -116,7 +111,7 @@ int main(int argc, char **argv) {
   }
 
   echo(
-      "</div>"
+      "</div><div>clearfix</div>"
       "</main><footer></footer>"
 
       "</body>"

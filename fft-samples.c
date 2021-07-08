@@ -40,7 +40,6 @@ int main(int argc, char** argv) {
   double sinetable[FFTBINS << 2];
   memcpy(sinetable, stbl, (FFTBINS << 2) * sizeof(double));
   readsf(sf2file);
-  init_ctx();
   for (int i = 0; i < nphdrs; i++) {
     int pid = phdrs[i].pid;
     int bid = phdrs[i].bankId;

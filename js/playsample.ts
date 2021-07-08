@@ -1,5 +1,5 @@
 import { mkcanvas, resetCanvas, chart, HEIGHT, WIDTH } from "../chart/chart.js";
-import { fftmod } from "../fft.js";
+import { fftmod } from "../fft/FFT.js";
 type PowerOfTwo = 1024 | 32 | 64 | 128 | 4096; //eye-balling the math here
 const FFTSize: PowerOfTwo = 1024;
 const fft = fftmod(1 << FFTSize);
@@ -71,24 +71,6 @@ const canvas = mkcanvas(rightPanel);
 const canvas2 = mkcanvas(rightPanel);
 
 const cent2sec = (cent: number) => Math.pow(2, cent / 1200);
-const attackEvents = [
-  "touchstart",
-  "click",
-  "focus",
-  "keydown",
-  "mousedown",
-  "wheel",
-];
-const releaseEventsList = [
-  "touchend",
-  "mouseup",
-  "unfocus",
-  "keyup",
-  "mouseup",
-  "wheel",
-];
-let touchHandleSemaphored = 0;
-attackEvents.map((eventName, idx) => {});
 
 window.onmousedown = async (e) => {
   const btn = e.target as HTMLElement;
@@ -125,7 +107,7 @@ async function run_sf2_smpl(
   midi: any
 ) {
   const { sr, startloop, pitch, endloop, file, range } = sampleInfo;
-  const ctx = new OfflineAudioContext(1, 384000, 384000);
+  const ctx = new OfflineAudioContext(1, sr, sr);
   const audb = ctx.createBuffer(2, smplData.length, sr);
 
   audb.getChannelData(0).set(smplData);
