@@ -143,7 +143,6 @@ int main(int argc, char **argv) {
       (zone->OverrideRootKey > -1 ? zone->OverrideRootKey : sh->originalPitch) *
       100.0f;
   float pitch = rootkey + zone->CoarseTune * 100 + zone->FineTune;
-  int delay = zone->VolEnvDelay;
   v->pos = sh->start;
   v->ratio = (float)sh->sampleRate / (powf(2, (pitch - 6900) / 1200) * 440.0f) /
              4096.0f;
@@ -179,15 +178,13 @@ int main(int argc, char **argv) {
   osc->fadeDim1Increment = 1 / 4.0f / WAVETABLE_SIZE;
   osc->wave010 = silence;
   osc->wave011 = silence;
-osc->fadeDim2=.0;
-osc->fadeDim2Increment= pow(2.0f, zone->VolEnvAttack/1200.0f)/SAMPLE_RATE;
+
   set_midi(osc, 55);
   // FILE *output = formatpcm("mp3", "note.mp3");
   FILE *output = ffp(1, 48000);
   for (int i = 0; i < 48000 / SAMPLE_BLOCKSIZE; i++) {
-    wavetable_2dimensional_oscillator(osc);
+    wavetable_1dimensional_oscillator(osc);
 
-    
     fwrite(osc->output_ptr, sizeof(float), SAMPLE_BLOCKSIZE, output);
     if (osc->fadeDim1 >= 1.0f) {
       osc->wave000 = wavetable_ref += 1 * WAVETABLE_SIZE;

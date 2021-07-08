@@ -116,14 +116,14 @@ async function run_sf2_smpl(
   midi: any
 ) {
   const { sr, startloop, pitch, endloop, file, range } = sampleInfo;
-  const ctx = new OfflineAudioContext(1, FFTSize, FFTSize);
+  const ctx = new OfflineAudioContext(1,5*sr, sr);
   const audb = ctx.createBuffer(2, smplData.length, sr);
 
   audb.getChannelData(0).set(smplData);
   //ratio=((float)sh->sampleRate / (float)frequency(sh->originalPitch)) / 4096.0f
   const abs = new AudioBufferSourceNode(ctx, {
-    buffer: audb,
-    playbackRate: sr/cent2freq(pitch)*FFTSize
+    buffer: audb,loop:true,loopStart:startloop/sr,loopEnd:endloop/sr,
+    playbackRate:1
   });
   let lpf = new BiquadFilterNode(ctx, {
     frequency: Math.min(
@@ -150,7 +150,7 @@ async function run_sf2_smpl(
   const volumeEnveope = new GainNode(ctx, { gain: 0 });
 
   volumeEnveope.gain.linearRampToValueAtTime(
-    Math.pow(10, -zone.Attenuation / 200),
+    Math.pow(10, zone.Attenuation / 200),
     Math.pow(2, zone.VolEnvAttack / 1200)
   );
 
@@ -171,9 +171,9 @@ async function run_sf2_smpl(
   const flnum = ab.getChannelData(0).length;
   let readoffset = 0;
   function renderLoop() {
-    const sig = ab.getChannelData(0).slice(readoffset, readoffset + 4096);
+    const sig = ab.getChannelData(0).slice(readoffset, readoffset + 1024);
     chart(canvas, sig); //ab.getChannelData(0).slice(readoffset, readoffset + 4096));
-    readoffset += 4096;
+    readoffset += 1024;fft.reset();
     fft.inputPCM(sig);
     const spec=fft.getFloatFrequencyData();
     chart(canvas2, spec[0] );
