@@ -24,6 +24,7 @@ static table_index active_tables[NUM_OSCILLATORS];
 void setProgram(int channelId, int pid, int bankid) {
   char fname[127];
   sprintf(fname, "pages/%d_%d.dat", pid, bankid);
+  printf("%s", fname);
   FILE *fd = fopen(fname, "r");
   if (!fd) {
     perror("\n no fd");
@@ -179,7 +180,9 @@ void spin_oscillator_event_loop(float *ob, int ob_len) {
 int main() {
   float ob[128];
   init_oscillators();
-  setProgram(9, 0, 128);
+  setProgram(0, 0, 0);
+  setProgram(1, 4, 0);
+
   FILE *o = ffp(1, 48000);
 
   proc_note_on(9, 66, 120);
@@ -188,38 +191,36 @@ int main() {
     wavetable_2dimensional_oscillator(oscillator + 9);
     fwrite((oscillator + 9)->output_ptr, sizeof(float), SAMPLE_BLOCKSIZE, o);
   }
-  // }
-  // FILE *o = ffp(1, 48000);
-  // float vm = 1.0f;
-  // for (int a = clarinet; a >= 0; a--) {
-  //   bzero(wavetable_sets, sizeof(wavetable_sets));
-  //   setProgram(a / 8, a, 0);
-  //   wavetable_oscillator_data *_osc = &(oscillator[a / 8]);
+  float vm = 1.0f;
+  for (int a = 100; a >= 0; a--) {
+    bzero(wavetable_sets, sizeof(wavetable_sets));
+    setProgram(a / 8, a, 0);
+    wavetable_oscillator_data *_osc = &(oscillator[a / 8]);
 
-  //   for (int midi = 55; midi < 70; midi += vm) {
-  //     if (midi % 12 == 0)
-  //       vm = 3;
-  //     else
-  //       vm = 4;
-  //     _osc->frequencyIncrement = -90;
+    for (int midi = 55; midi < 70; midi += vm) {
+      if (midi % 12 == 0)
+        vm = 3;
+      else
+        vm = 4;
+      _osc->frequencyIncrement = -90;
 
-  //     proc_note_on(a / 8, midi, midi % 4 * 10);
-  //     for (int i = 0; i < 48000 * .5; i += 128) {
-  //       bzero(_osc->output_ptr, sizeof(float) * SAMPLE_BLOCKSIZE);
-  //       wavetable_3dimensional_oscillator(_osc);
-  //       // oscillator[0].fadeDim1 += oscillator[0].fadeDim1Increment;
-  //       _osc->frequencyIncrement *= -.80;
-  //       fwrite(oscillator->output_ptr, sizeof(float), SAMPLE_BLOCKSIZE, o);
-  //     }
-  //     proc_att_finish(a / 8);
+      proc_note_on(a / 8, midi, midi % 4 * 10);
+      for (int i = 0; i < 48000 * .5; i += 128) {
+        bzero(_osc->output_ptr, sizeof(float) * SAMPLE_BLOCKSIZE);
+        wavetable_3dimensional_oscillator(_osc);
+        // oscillator[0].fadeDim1 += oscillator[0].fadeDim1Increment;
+        _osc->frequencyIncrement *= -.80;
+        fwrite(oscillator->output_ptr, sizeof(float), SAMPLE_BLOCKSIZE, o);
+      }
+      proc_att_finish(a / 8);
 
-  //     proc_note_release(a / 8, midi, 122);
-  //     for (int i = 0; i < 48000 * .2; i += 128) {
-  //       bzero(_osc->output_ptr, sizeof(float) * SAMPLE_BLOCKSIZE);
+      proc_note_release(a / 8, midi, 122);
+      for (int i = 0; i < 48000 * .2; i += 128) {
+        bzero(_osc->output_ptr, sizeof(float) * SAMPLE_BLOCKSIZE);
 
-  //       wavetable_3dimensional_oscillator(_osc);
-  //       fwrite(_osc->output_ptr, sizeof(float), SAMPLE_BLOCKSIZE, o);
-  //     }
-  //   }
-  // }
+        wavetable_3dimensional_oscillator(_osc);
+        fwrite(_osc->output_ptr, sizeof(float), SAMPLE_BLOCKSIZE, o);
+      }
+    }
+  }
 }

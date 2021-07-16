@@ -4,7 +4,7 @@
 #define output_sampleRate 48000
 #define dspbuffersize 128
 
-#define FFTBINS 1024
+#define FFTBINS 4096
 
 #define nkeys 6
 #define nvels 5

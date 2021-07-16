@@ -34,8 +34,9 @@ int main(int argc, char** argv) {
 
   char* sf2file = argc > 3 ? argv[3] : "file.sf2";
   char outfile[1024];
-  double sinetable[FFTBINS << 2];
-  memcpy(sinetable, stbl, (FFTBINS << 2) * sizeof(double));
+  int N = 4096, n = 12;
+  double sinetable[N / 4];
+  sin_table(sinetable, 12);
   readsf(sf2file);
   complex c[FFTBINS];
   init_ctx();
@@ -105,7 +106,7 @@ void render_and_fft(voice* v, complex* c, double* stbl, float* destination) {
   }
   FFT(c, log2(FFTBINS), stbl);
   bit_reverse(c, log2(FFTBINS));
-  int npartials = 11;
+  int npartials = 600;
   for (int i = 0; i < FFTBINS; i++) {
     // printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
 
