@@ -1,9 +1,8 @@
 #include <stdint.h>
 
 typedef struct {
-  uint32_t delay_steps, att_steps, hold_steps, decay_steps, release_steps;
-  unsigned short sustain;
-  float db_attenuate;
+  unsigned short delay_steps, att_steps, hold_steps, decay_steps, release_steps,
+      sustain, db_attenuate;
   float att_rate, decay_rate, release_rate;
 } adsr_t;
 adsr_t *newEnvelope(short centDelay, short centAtt, short centHold,
@@ -17,7 +16,7 @@ adsr_t *newEnvelope(short centDelay, short centAtt, short centHold,
   env->decay_steps = powf(2.0f, (float)centDecay / 1200.0f) * sampleRate;
   env->release_steps = powf(2.0f, (float)centRelease / 1200.0f) * sampleRate;
   env->att_rate = -960.0f / env->att_steps;
-  env->decay_rate = ((float)1.0f * sustain) / (float)env->decay_steps;
+  env->decay_rate = (float)(env->sustain / 10) / env->decay_steps;
   env->release_rate = (float)960.0f / ((float)env->release_steps);
   env->db_attenuate = 959.0f;
 

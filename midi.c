@@ -18,19 +18,19 @@ void *cb(void *args)
 	ctx_t *ctx = (ctx_t *)args;
 	struct timespec start, stop;
 	long elapsed;
-	ctx->outputFD =  fopen(mkfifo("hello.pcm"),"rb");
+        ctx->outputFD = fopen("hello.pcm", "wb");
 
-	for (;;)
-	{
-		clock_gettime(0, &start);
-		render(ctx);
-		clock_gettime(0, &stop);
-		elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
+        for (;;) {
+          clock_gettime(0, &start);
+          render(ctx);
+          clock_gettime(0, &stop);
+          elapsed =
+              (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
 
-		usleep(1e3-elapsed);
-	}
+          usleep(1e3 - elapsed);
+        }
 
-	return NULL;
+        return NULL;
 }
 int main(int argc, char **argv)
 {
