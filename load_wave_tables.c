@@ -15,26 +15,25 @@
 //
 */
 #define N_TABLE_BITS 5
-#define WAVETABLE_SIZE (1 << N_TABLE_BITS )
+#define WAVETABLE_SIZE (1 << N_TABLE_BITS)
 #define MASK_WAVEINDEX 0x000000FFUL
 #define MAST_FRACTIONAL_BITS 0x00FFFFFF
-#define ONELONE (float)((1L<<32)-0.01f)
+#define ONELONE (float)((1L << 32) - 0.01f)
 
-typedef struct _frame{
+typedef struct _frame {
   int duration_nsamples;
   float wavetable[WAVETABLE_SIZE];
 } wavetable_frame;
-#include<stdio.h>
-#include<stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-int main(){
+int main() {
+  // printf("%f", ONELONE-.1f);
+  system("chrome-cli open 'https://dsp.grepawk.com/render/outside.html'");
+  //    system("chrome-cli open 'https://dsp.grepawk.com/render/outside.html'");
 
-   // printf("%f", ONELONE-.1f);
-    system("chrome-cli open 'https://dsp.grepawk.com/render/outside.html'");
-    //    system("chrome-cli open 'https://dsp.grepawk.com/render/outside.html'");
-
-system("chrome-cli execute 'alert(\"hi\")'");
-    // char buf[1024];
-    // fread(buf,1024,1,proc);
-    // fwrite(buf,1024,1,stdout);
+  system("chrome-cli execute 'alert(\"hi\")'");
+  // char buf[1024];
+  // fread(buf,1024,1,proc);
+  // fwrite(buf,1024,1,stdout);
 }

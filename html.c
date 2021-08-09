@@ -30,8 +30,9 @@ int main(int argc, char **argv) {
       "  main{display:grid;grid-template-columns:1fr 1fr;}"
       "  aside{ position: fixed;top: 20px;right: 0px;display: grid;}"
       "</style></head>");
-fprintf(output, "<body><header>%s</header>",info);
-echo( "using the sf2 font file font on ther internet: <a "
+  fprintf(output, "<body><header>%s</header>", info);
+  echo(
+      "using the sf2 font file font on ther internet: <a "
       "href='http://www.schristiancollins.com/generaluser.php' "
       "target=_blank>http://www.schristiancollins.com/generaluser.php</a>"
       "<script type='module' src='./dist/playsample.js'></script>"
@@ -45,8 +46,8 @@ echo( "using the sf2 font file font on ther internet: <a "
     zone_t *zones = pz->zones;
     shdrcast *sampl = (shdrcast *)(shdrs + zones->SampleId);
     echo("<details>");
-    fprintf(output, "   <summary> %d: %s (%d presets) </summary>",
-          pz->hdr.pid,  pz->hdr.name, pz->npresets);
+    fprintf(output, "   <summary> %d: %s (%d presets) </summary>", pz->hdr.pid,
+            pz->hdr.name, pz->npresets);
     echo(
         "<table border=1 style='border-width:1px'>"
         "<thead><tr>"
@@ -58,7 +59,7 @@ echo( "using the sf2 font file font on ther internet: <a "
         "<td colspan=2>samprate</td>"
         "</tr></thead>");
 
-        fprintf(output,"<tbody pid=%hd bankid=%dhd>",pz->hdr.pid, pz->hdr.bankId);
+    fprintf(output, "<tbody pid=%hd bankid=%dhd>", pz->hdr.pid, pz->hdr.bankId);
     for (int z = 0; z < pz->npresets; z++) {
       echo("<tr>");
       float pitch = (zones->OverrideRootKey > -1 ? zones->OverrideRootKey
@@ -76,21 +77,22 @@ echo( "using the sf2 font file font on ther internet: <a "
       fprintf(output, "<td>%hu(%hd)</td>", zones->FilterFc, zones->FilterQ);
       fprintf(output, "<td>%.0f</td>", pitch);
       fprintf(output, "<td>%hd</td><td>%hd</td><td>%hd</td>",
-          zones->VibLFO2Pitch, zones->ModLFO2FilterFc,
-              zones->ModLFO2Vol),
+              zones->VibLFO2Pitch, zones->ModLFO2FilterFc, zones->ModLFO2Vol),
           fprintf(output, "<td>%u|%u|%u|%u</td>", sampl->sampleRate,
                   sampl->startloop - sampl->start,
                   sampl->endloop - sampl->start, sampl->end - sampl->endloop);
 
       short *attrs = (short *)zones;
       fprintf(output,
-              "<tr><td colspan=12><a class='attlist' lokey=%d hikey=%d lovel=%d hivel=%d sr='%d' file='%s' "
+              "<tr><td colspan=12><a class='attlist' lokey=%d hikey=%d "
+              "lovel=%d hivel=%d sr='%d' file='%s' "
               "range='bytes=%u-%u' endloop='%u' startloop='%u' "
               "pitch='%f' zone='",
               zones->KeyRange.lo, zones->KeyRange.hi, zones->VelRange.lo,
-              zones->VelRange.hi, sampl->sampleRate, readff, sdtastart + 2 * sampl->start,
-              sdtastart + 2 * sampl->end + 1, sampl->endloop - sampl->start,
-              sampl->startloop - sampl->start, pitch);
+              zones->VelRange.hi, sampl->sampleRate, readff,
+              sdtastart + 2 * sampl->start, sdtastart + 2 * sampl->end + 1,
+              sampl->endloop - sampl->start, sampl->startloop - sampl->start,
+              pitch);
 
       for (int i = 0; i < 60; i++) {
         fprintf(output, "%hd%s", attrs[i], i < 59 ? "," : "");
@@ -98,13 +100,12 @@ echo( "using the sf2 font file font on ther internet: <a "
       fprintf(output, "'>%s</a>", sampl->name);
       fprintf(output, "<a midi='%d' class='pcm' href='#'>samp</a> &nbsp;",
               (int)(pitch / 100), pitch);
-//       for (int i = zones->KeyRange.lo;
-//            i <= zones->KeyRange.lo + 34 && i <= zones->KeyRange.hi; i++) {
-//         if (i < 21 || i > 100) continue;
-//         fprintf(output,
-//                 "<a href='#' midi='%d' class='pcm'>%d%s</a>&nbsp;",
-//                 i, i / 12, notestr[i % 12]);
-//       }
+      for (int i = zones->KeyRange.lo;
+           i <= zones->KeyRange.lo + 34 && i <= zones->KeyRange.hi; i++) {
+        if (i < 21 || i > 100) continue;
+        fprintf(output, "<a href='#' midi='%d' class='pcm'>%d%s</a>&nbsp;", i,
+                i / 12, notestr[i % 12]);
+      }
       fprintf(output, "</td></tr>");
 
       zones++;

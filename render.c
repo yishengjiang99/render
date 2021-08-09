@@ -193,6 +193,6 @@ int main(int argc, char **argv) {
       osc->wave001 = wavetable_ref += 1 * WAVETABLE_SIZE;
       osc->fadeDim1Increment *= -1;
     }
-    printf("\n%f",osc->fadeDim2);
+    printf("\n%f", osc->fadeDim2);
   }
 }

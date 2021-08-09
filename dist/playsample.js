@@ -57,7 +57,6 @@ const parseSampleInfo = (attbag) => {
     return { sr, startloop, pitch, endloop, file, range };
 };
 const rightPanel = document.querySelector("#details");
-document.querySelector("main").style.width = "10vw";
 const canvas = mkcanvas(rightPanel);
 const canvas2 = mkcanvas(rightPanel);
 const canvas3 = mkcanvas(rightPanel);
@@ -70,6 +69,13 @@ window.onmousedown = async (e) => {
       */
     const onRelease = new Promise((r) => window.addEventListener("mouseup", r, { once: true }));
     if (e.target.classList.contains("pcm")) {
+        if (!realctx) {
+            realctx = new AudioContext();
+            realctx.audioWorklet.addModule(pt_code());
+        }
+        if (realctx.state == "suspended")
+            realctx.resume();
+        e.preventDefault();
         const attbag = btn.parentElement.querySelector(".attlist");
         console.assert(attbag != null);
         const info = parseSampleInfo(attbag);
@@ -80,10 +86,6 @@ window.onmousedown = async (e) => {
             await onRelease;
             triggerAdsrRelease();
         });
-        if (!realctx)
-            realctx = new AudioContext();
-        if (realctx.state == "suspended")
-            realctx.resume().then((ab) => { });
     }
 };
 function cent2freq(cent) {
@@ -91,20 +93,23 @@ function cent2freq(cent) {
 }
 async function run_sf2_smpl(sampleInfo, zone, smplData, midi) {
     const { sr, startloop, pitch, endloop, file, range } = sampleInfo;
-    const ctx = new OfflineAudioContext(1, 5 * sr, sr);
-    const audb = ctx.createBuffer(2, smplData.length, sr);
+    // ctx = ctx || new AudioContext({ sampleRate: sr });
+    const audb = realctx.createBuffer(2, smplData.length, sr);
     audb.getChannelData(0).set(smplData);
     //ratio=((float)sh->sampleRate / (float)frequency(sh->originalPitch)) / 4096.0f
-    const abs = new AudioBufferSourceNode(ctx, {
-        buffer: audb, loop: true, loopStart: startloop / sr, loopEnd: endloop / sr,
-        playbackRate: 1
+    const abs = new AudioBufferSourceNode(realctx, {
+        buffer: audb,
+        loop: true,
+        loopStart: startloop / sr,
+        loopEnd: endloop / sr,
+        playbackRate: realctx.sampleRate / sr,
     });
-    let lpf = new BiquadFilterNode(ctx, {
-        frequency: Math.min(Math.pow(2, zone.FilterFc / 1200) * 8.176, ctx.sampleRate / 2),
+    let lpf = new BiquadFilterNode(realctx, {
+        frequency: Math.min(Math.pow(2, zone.FilterFc / 1200) * 8.176, realctx.sampleRate / 2),
         Q: zone.FilterQ / 10,
         type: "lowpass",
     });
-    const modEnvelope = new GainNode(ctx, { gain: 0 });
+    const modEnvelope = new GainNode(realctx, { gain: 0 });
     modEnvelope.connect(lpf.frequency);
     if (zone.ModEnvAttack > -12000) {
         modEnvelope.gain.linearRampToValueAtTime(1, cent2sec(zone.ModEnvAttack));
@@ -113,18 +118,16 @@ async function run_sf2_smpl(sampleInfo, zone, smplData, midi) {
         modEnvelope.gain.value = 1.0;
     }
     modEnvelope.gain.setTargetAtTime(1 - zone.ModEnvSustain / 1000, cent2sec(zone.ModEnvDecay), 0.4);
-    const volumeEnveope = new GainNode(ctx, { gain: 0 });
+    const volumeEnveope = new GainNode(realctx, { gain: 0 });
     volumeEnveope.gain.linearRampToValueAtTime(Math.pow(10, zone.Attenuation / 200), Math.pow(2, zone.VolEnvAttack / 1200));
     volumeEnveope.gain.setTargetAtTime(1 - zone.VolEnvSustain / 1000, Math.pow(2, zone.VolEnvDecay / 1200), 0.4);
     const releaseTime = Math.pow(2, zone.VolEnvRelease / 1200);
-    abs.connect(volumeEnveope).connect(lpf).connect(ctx.destination);
+    abs.connect(volumeEnveope).connect(lpf).connect(realctx.destination);
     abs.start();
-    const rendJoin = ctx.startRendering();
-    const ab = await rendJoin;
-    const flnum = ab.getChannelData(0).length;
+    const flnum = smplData;
     let readoffset = 0;
     function renderLoop() {
-        const sig = ab.getChannelData(0).slice(readoffset, readoffset + 1024);
+        const sig = smplData.slice(readoffset, readoffset + 1024);
         chart(canvas, sig); //ab.getChannelData(0).slice(readoffset, readoffset + 4096));
         readoffset += 1024;
         fft.reset();
@@ -138,13 +141,6 @@ async function run_sf2_smpl(sampleInfo, zone, smplData, midi) {
             requestAnimationFrame(renderLoop);
     }
     renderLoop();
-    const abss = new AudioBufferSourceNode(realctx, {
-        buffer: ab,
-        playbackRate: (midi * 100) / pitch,
-    });
-    abss.connect(realctx.destination);
-    abss.start();
-    abss.onended = () => { };
     return function envrelease() {
         volumeEnveope.gain.linearRampToValueAtTime(0, releaseTime);
     };
