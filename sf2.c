@@ -33,13 +33,6 @@ void sf2Info(FILE *fd) {
   sdtastart = ftell(fd);
 
   fseek(fd, h2->size, SEEK_CUR);
-
-  // fread(data, sizeof(short), nsamples, fd);
-
-  // for (int i = 0; i < nsamples; i++) {
-  //   *trace++ = *(data + i) / 32767.0f;
-  // }
-
 #define readSection(section)                  \
   fread(sh, sizeof(section_header), 1, fd);   \
   n##section##s = sh->size / sizeof(section); \

@@ -4,13 +4,12 @@
 #include <stdlib.h>
 #include <strings.h>
 
+#include "LFO.h"
 #include "libs/biquad.h"
 #include "luts.c"
-#include "sf2.h"
+#include "sf2.c"
 
 #define minf(a, b) a < b ? a : b;
-
-//(presetZones[i].zones[j].KeyRange & 0x7f00) >> 8)
 int get_sf(int channelNumer, int key, int vel) {
   channel_t ch = g_ctx->channels[channelNumer];
   zone_t *zones = ch.pzset.zones;
@@ -33,6 +32,7 @@ int get_sf(int channelNumer, int key, int vel) {
 adsr_t *newEnvelope(short centDelay, short centAtt, short centHold,
                     short centRelease, short centDecay, short sustain,
                     int sampleRate) {
+  if (centAtt <= -12000) centAtt = -11000;
   adsr_t *env = (adsr_t *)malloc(sizeof(adsr_t));
   env->delay_steps = powf(2.0f, (float)centDelay / 1200.0f) * sampleRate;
   env->hold_steps = powf(2.0f, (float)centHold / 1200.0f) * sampleRate;
@@ -40,21 +40,27 @@ adsr_t *newEnvelope(short centDelay, short centAtt, short centHold,
   env->att_steps = powf(2.0f, (float)centAtt / 1200.0f) * sampleRate;
   env->decay_steps = powf(2.0f, (float)centDecay / 1200.0f) * sampleRate;
   env->release_steps = powf(2.0f, (float)centRelease / 1200.0f) * sampleRate;
+  sustain = 500;
   env->att_rate = -960.0f / env->att_steps;
-  env->decay_rate = ((float)1.0f * sustain) / (float)env->decay_steps;
+  env->decay_rate = (960.0f * sustain / 1000.f) / (float)env->decay_steps;
   env->release_rate = (float)960.0f / ((float)env->release_steps);
   env->db_attenuate = 959.0f;
 
   return env;
 }
 float envShift(adsr_t *env) {
-  if (env->delay_steps-- > 0) {
+  // printf("%d %d %f %d  %d %d %f\n", env->delay_steps, env->att_steps,
+  //        env->att_rate, env->hold_steps, env->decay_steps,
+  //        env->release_steps, env->db_attenuate);
+  if (env->delay_steps > 0) {
+    env->delay_steps--;
   }
 
   else if (env->att_steps > 0) {
     env->att_steps--;
     env->db_attenuate += env->att_rate;
-  } else if (env->hold_steps-- > 0) {
+  } else if (env->hold_steps > 0) {
+    env->hold_steps--;
   } else if (env->decay_steps > 0) {
     env->decay_steps--;
     env->release_steps--;
@@ -64,17 +70,11 @@ float envShift(adsr_t *env) {
     env->release_steps--;
     env->db_attenuate += env->release_rate;
   }
-  // printf("%f", env->db_attenuate);
-  if (env->db_attenuate > 960) {
-    if (env->att_steps <= 0) {
-      env->decay_steps = 0;
-    } else {
-      env->db_attenuate = 960.0f;
-    }
+  if (env->db_attenuate > 961) {
+    env->release_steps = 0;
+    env->db_attenuate = 960.f;
   }
-  if (env->db_attenuate < 0.0) {
-    env->db_attenuate = 0.0f;
-  }
+
   return env->db_attenuate;
 }
 void adsrRelease(adsr_t *env) {
@@ -108,21 +108,22 @@ float calcratio(zone_t *z, shdrcast *sh, int midi) {
 #define trval (*tr)
 #define trshift &((*tr)->next)
 void loop(voice *v, float *output, channel_t ch) {
+  float modLFOVal = LFO_roll(v->modlfo, g_ctx->samples_per_frame);
+  float pitchModLFO = modLFOVal * v->z->ModLFO2Pitch;  // centz
   uint32_t loopLength = v->endloop - v->startloop;
+  int krateCB = 0;
+  krateCB += v->attenuate;
+  krateCB -= modLFOVal * v->z->ModLFO2Vol;
 
-  float volume_gain = v->attenuate * ch.midi_volume;
-  float g_left = v->panLeft * volume_gain;
-  float g_right = v->panRight * volume_gain;
-  float modEG = envShift(v->moddvol) / -960.0f;
-  // v->lpf = BiQuad_new(
-  //     LPF, v->z->FilterQ / 10.0f,
-  //     powf(2,
-  //          (float)(v->z->FilterFc + modEG * v->z->ModEnv2FilterFc) /
-  //          1200.0f),
-  //     g_ctx->sampleRate, 1.0);
+  float g_left = v->panLeft;
+  float g_right = v->panRight;
+  float stride = v->ratio;
+  int aRateCB = krateCB;
   for (int i = 0; i < g_ctx->samples_per_frame; i++) {
-    modEG = envShift(v->moddvol) / -960.0f;
-
+    float modEG = centdblut(envShift(v->moddvol) / 10);
+    float pitchModEG = modEG * v->z->ModEnv2Pitch / 100.0f;
+    aRateCB += envShift(v->ampvol);
+    stride = stride * (12.0f + pitchModEG + pitchModLFO) / 12.0f;
     float fm1 = *(sdta + v->pos - 1);
     float f1 = *(sdta + v->pos);
     float f2 = *(sdta + v->pos + 1);
@@ -131,15 +132,15 @@ void loop(voice *v, float *output, channel_t ch) {
     float o1 = *(output + 2 * i + 1);
     float o2 = *(output + 2 * i);
     float gain = hermite4(v->frac, fm1, f1, f2, f3);
-    // gain *= 1;  // centdblut(envShift(v->ampvol));
-    // if (v->lpf != NULL) {
-    //   gain = BiQuad(gain, v->lpf);  // 1.0;  //	printf("\t %f
-    //   %f\n",gain);
-    // }
-    *(output + 2 * i) += gain;  // * v->panRight;
-    *(output + 2 * i + 1) += gain * v->panRight;
+    gain = gain * centdblut(aRateCB / 10);
 
-    v->frac += v->ratio * p2over1200(modEG * v->z->ModEnv2Pitch);
+    if (v->lpf != NULL) {
+      gain = BiQuad(gain, v->lpf);
+    }
+    *(output + 2 * i) += gain * v->panRight;
+    *(output + 2 * i + 1) += gain * v->panLeft;
+
+    v->frac += stride;
     while (v->frac >= 1.0f) {
       v->frac--;
       v->pos++;
@@ -191,8 +192,7 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
 
   v->panLeft = panLeftLUT(z->Pan);
   v->panRight = (1 - v->panLeft);
-  v->attenuate =
-      powf(10.0, (velratio * velratio - z->Attenuation / 10) * 0.05f);
+  v->attenuate = velratio * velratio - z->Attenuation / 10;
 
   if (z->FilterFc < 14000) {
     v->lpf = BiQuad_new(LPF, z->FilterQ / 10.0f,
@@ -200,7 +200,12 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
                         g_ctx->sampleRate, 1.0);
   }
   g_ctx->refcnt++;
-  return v;
+  v->modlfo = (LFO *)malloc(sizeof(LFO));
+  v->modlfo->delay = z->ModLFODelay;
+  lfo_set_frequency(v->modlfo, pow(2, z->ModLFOFreq / 1200) * 8.176);
+  v->vibrlfo = (LFO *)malloc(sizeof(LFO));
+  v->vibrlfo->delay = z->VibLFODelay;
+  lfo_set_frequency(v->vibrlfo, pow(2, z->VibLFOFreq / 1200) * 8.176);
   // insertV(&(g_ctx->channels[channelNumber].voices), v);
 }
 
@@ -256,10 +261,9 @@ void render(ctx_t *ctx) {
       if ((*tr)->ampvol->release_steps <= 0) {
         voice *donev = *tr;
         (*tr)->done = voice_gc;
-        *tr = (*tr)->next;
+        //       *tr = (*tr)->next;
         g_ctx->refcnt--;
-        free(donev);
-
+        // free(donev);
       } else {
         loop(*tr, g_ctx->outputbuffer, ch);
       }
@@ -294,35 +298,6 @@ void render_fordr(ctx_t *ctx, float duration, void (*cb)(ctx_t *ctx)) {
     duration -= 0.00266f;
   }
 }
-#define debsug 1
-#ifdef debug
-#include <assert.h>
-
-#include "call_ffp.c"
-#include "sf2.c"
-void cb(ctx_t *ctx) {
-  for (int i = 0; i < 128; i++) printf("\n%f", ctx->outputbuffer[0]);
-}
-int main() {
-  init_ctx();
-  FILE *f = fopen("GeneralUserGS.sf2", "rb");
-  if (!f) perror("oaffdf");
-
-  readsf(f);
-
-  g_ctx->outputFD = ffp(2, 48000);
-  g_ctx->mastVol = 1.0f;
-
-  setProgram(0, 66);
-  for (int m = 33; m < 78; m++) {
-    noteOn(0, m, 6 * 10, 0);
-
-    render_fordr(g_ctx, .5, NULL);
-    noteOff(0, m);
-    render_fordr(g_ctx, .5, NULL);
-  }
-}
-#endif
 
 float p2over1200(float x) {
   if (x < -12000) return 0;

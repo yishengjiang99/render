@@ -36,16 +36,12 @@ double tiktoktime() {
 
 void *cb(void *args) {
   ctx_t *ctx = (ctx_t *)args;
-  ctx->outputFD = NULL;
   long elapsed;
-  // ctx->outputFD = stdout;
-  float interval =
-      1000000.0f / ((float)ctx->sampleRate / (float)ctx->samples_per_frame);
+  ctx->outputFD = ffp(2, 48000);
 
-  for (int i = 0; i < 5 * ctx->sampleRate; i++) {
-    render(ctx);
-
-    usleep(interval - (float)(tiktoktime() / 1000.0f));  // * MSEC);
+  for (;;) {
+    render_fordr(ctx, 0.0266, NULL);
+    usleep(266);  // * MSEC);
   }
 
   return NULL;
@@ -63,7 +59,7 @@ int main(int argc, char **argv) {
   pthread_create(&t, NULL, &cb, (void *)g_ctx);
   ctx_t *ctx = g_ctx;
   while (m != NULL) {
-    msec += 1;
+    msec += 5;
     while (m && m->time < msec) {
       switch (m->type) {
         case TML_CONTROL_CHANGE: {
@@ -84,7 +80,6 @@ int main(int argc, char **argv) {
           break;
         case TML_PROGRAM_CHANGE:
 
-          //		ctx->channels[m->channel].program_number = m->program;
           setProgram(m->channel, m->program);
           break;
         case TML_NOTE_ON:
@@ -92,7 +87,6 @@ int main(int argc, char **argv) {
             noteOff((int)m->channel, (int)m->key);
           } else {
             noteOn((int)m->channel, (int)m->key, (int)m->velocity, m->time);
-            //  printf("\n%d**\n", g_ctx->refcnt);
           }
 
           break;
@@ -104,7 +98,9 @@ int main(int argc, char **argv) {
       }
       m = m->next;
     }
-    usleep(1000);
+    usleep(5000);
   }
+  pthread_cancel(t);
+  fclose(g_ctx->outputFD);
 }
 //}
