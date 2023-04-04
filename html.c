@@ -3,7 +3,7 @@
 #include <strings.h>
 
 #include "libs/fft.h"
-#include "runtime.h"
+#include "runtime.c"
 #include "sf2.h"
 #include "stbl.c"
 
@@ -24,7 +24,7 @@ static inline void file_get_contents(FILE *fd, char *ptr) {
 int main(int argc, char **argv) {
   filename = argc > 2 ? argv[2] : "GeneralUserGS.sf2";
   sf2 = fopen(filename, "rb");
-  output = fopen("staging.html", "wb");
+  output = fopen("index.html", "wb");
   if (!output || !sf2) {
     perror("failed to open output or sf2 file");
     return 1;

@@ -94,7 +94,7 @@ void render_and_fft(voice* v, complex* c, double* stbl, float* destination) {
   bit_reverse(c, log2(FFTBINS));
   int npartials = 11;
   for (int i = 0; i < FFTBINS; i++) {
-    //  printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
+    printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
 
     if (i > npartials && i <= FFTBINS / 2) {
       c[i].real = 0.0f;
@@ -109,7 +109,7 @@ void render_and_fft(voice* v, complex* c, double* stbl, float* destination) {
   bit_reverse(c, log2(FFTBINS));
   iFFT(c, log2(FFTBINS), stbl);
   for (int i = 0; i < FFTBINS; i++) {
-    // printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
+    printf("\n%d: %f, %f", i, (float)c[i].real, (float)c[i].imag);
     destination[i] = (float)c[i].real;
   }
 }

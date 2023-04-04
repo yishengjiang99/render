@@ -207,6 +207,7 @@ voice *newVoice(zone_t *z, int midi, int vel, int cid) {
   v->vibrlfo->delay = z->VibLFODelay;
   lfo_set_frequency(v->vibrlfo, pow(2, z->VibLFOFreq / 1200) * 8.176);
   // insertV(&(g_ctx->channels[channelNumber].voices), v);
+  return v;
 }
 
 ctx_t *init_ctx() {

@@ -14,7 +14,18 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 set(DCMAKE_TOOLCHAIN_FILE /usr/local/lib/vcpkg/scripts/buildsystems/vcpkg.cmake)
-
+add_library(
+  fft
+  libs/fft.c
+)
+add_library(
+  runtime
+  runtime.c
+)
+add_library(
+  biquad
+  libs/biquad.c
+)
 add_executable(
   sf2test
   tests/sf2.test.cc
@@ -22,6 +33,18 @@ add_executable(
 add_executable(
   rendertest
   tests/render.test.cc
+)
+add_executable(
+  midi
+  midi.c
+)
+target_link_libraries(
+  runtime
+  biquad
+)
+target_link_libraries(
+  midi
+  fft
 )
 target_link_libraries(
   sf2test
