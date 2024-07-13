@@ -2,8 +2,14 @@
 #define RUNTIME_H
 #include <stdio.h>
 
+<<<<<<< HEAD:includes/runtime.h
 #include "biquad.h"
+=======
+#include "LFO.h"
+#include "libs/biquad.h"
+>>>>>>> ccb63045f94e41b01371b10a1e1f4968357b9326:runtime.h
 #include "sf2.h"
+
 #ifndef output_sampleRate
 #define output_sampleRate 44100
 
@@ -37,6 +43,7 @@ typedef struct _voice {
   short attenuate;
   biquad *lpf;
   struct _voice *next;
+  LFO *modlfo, *vibrlfo;
 } voice;
 
 typedef struct {

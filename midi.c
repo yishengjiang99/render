@@ -15,6 +15,7 @@
 #include "call_ffp.c"
 void *cb(void *args) {
   ctx_t *ctx = (ctx_t *)args;
+<<<<<<< HEAD
   struct timespec start, stop;
   long elapsed;
   ctx->outputFD = fopen("hello.pcm", "wb");
@@ -26,6 +27,14 @@ void *cb(void *args) {
     elapsed = (stop.tv_sec - start.tv_sec) + (stop.tv_nsec - start.tv_nsec);
 
     usleep(1e3 - elapsed);
+=======
+  long elapsed;
+  ctx->outputFD = ffp(2, 48000);
+
+  for (;;) {
+    render_fordr(ctx, 0.0266, NULL);
+    usleep(266);  // * MSEC);
+>>>>>>> ccb63045f94e41b01371b10a1e1f4968357b9326
   }
 
   return NULL;
@@ -42,7 +51,11 @@ int main(int argc, char **argv) {
   pthread_t t;
   // pthread_create(&t, NULL, &cb, (void *)ctx);
   while (m != NULL) {
+<<<<<<< HEAD
     msec += 3;
+=======
+    msec += 5;
+>>>>>>> ccb63045f94e41b01371b10a1e1f4968357b9326
     while (m && m->time < msec) {
       switch (m->type) {
         case TML_CONTROL_CHANGE: {
@@ -64,8 +77,11 @@ int main(int argc, char **argv) {
           break;
         case TML_PROGRAM_CHANGE:
 
+<<<<<<< HEAD
           //				ctx->channels[m->channel].program_number =
           //m->program;
+=======
+>>>>>>> ccb63045f94e41b01371b10a1e1f4968357b9326
           setProgram(m->channel, m->program);
           break;
         case TML_NOTE_ON:
@@ -84,7 +100,13 @@ int main(int argc, char **argv) {
       }
       m = m->next;
     }
+<<<<<<< HEAD
     usleep(3000);
+=======
+    usleep(5000);
+>>>>>>> ccb63045f94e41b01371b10a1e1f4968357b9326
   }
+  pthread_cancel(t);
+  fclose(g_ctx->outputFD);
 }
 //}

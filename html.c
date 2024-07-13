@@ -3,7 +3,14 @@
 #include <stdlib.h>
 #include <strings.h>
 
+<<<<<<< HEAD
 #include "sf2/sf2.c"
+=======
+#include "libs/fft.h"
+#include "runtime.c"
+#include "sf2.h"
+#include "stbl.c"
+>>>>>>> ccb63045f94e41b01371b10a1e1f4968357b9326
 
 FILE *output, *sf2;
 char outputff[1024];
@@ -18,10 +25,21 @@ const char *notestr[12] = {"A",  "A#", "B", "C",  "C#", "D",
 void printHTML(char *readff);
 
 int main(int argc, char **argv) {
+<<<<<<< HEAD
   char *readff = argc > 1 ? argv[1] : "file.sf2";
   char *filename = argc > 2 ? argv[2] : "index.html";
   readsf(readff);
   output = fopen(filename, "w");
+=======
+  filename = argc > 2 ? argv[2] : "GeneralUserGS.sf2";
+  sf2 = fopen(filename, "rb");
+  output = fopen("index.html", "wb");
+  if (!output || !sf2) {
+    perror("failed to open output or sf2 file");
+    return 1;
+  }
+  file_get_contents(fopen("playsample.js", "rb"), javascript);
+>>>>>>> ccb63045f94e41b01371b10a1e1f4968357b9326
   echo(
       "<!DOCTYPE html>"
       "<html><head>"

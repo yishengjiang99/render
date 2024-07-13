@@ -15,6 +15,7 @@ FetchContent_Declare(
   URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
 )
 
+<<<<<<< HEAD
 FetchContent_MakeAvailable(googletest)
 
 
@@ -62,6 +63,21 @@ FetchContent_Declare(
 
 enable_testing()
 
+=======
+set(DCMAKE_TOOLCHAIN_FILE /usr/local/lib/vcpkg/scripts/buildsystems/vcpkg.cmake)
+add_library(
+  fft
+  libs/fft.c
+)
+add_library(
+  runtime
+  runtime.c
+)
+add_library(
+  biquad
+  libs/biquad.c
+)
+>>>>>>> ccb63045f94e41b01371b10a1e1f4968357b9326
 add_executable(
   sf2test
   tests/sf2.test.cc
@@ -69,6 +85,18 @@ add_executable(
 add_executable(
   rendertest
   tests/render.test.cc
+)
+add_executable(
+  midi
+  midi.c
+)
+target_link_libraries(
+  runtime
+  biquad
+)
+target_link_libraries(
+  midi
+  fft
 )
 target_link_libraries(
     sf2test

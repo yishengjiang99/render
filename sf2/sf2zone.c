@@ -1,8 +1,72 @@
 #include <string.h>
 #include <stdlib.h>
 
+<<<<<<< HEAD:sf2/sf2zone.c
 #include "../includes/sf2.h"
 PresetZones *findByPid(int pid, int bkid) {
+=======
+void read_sdta(FILE *fd) {
+  if (sdtastart) {
+    fseek(fd, sdtastart, SEEK_SET);
+    data = (short *)malloc(nsamples * sizeof(short));
+    sdta = (float *)malloc(nsamples * sizeof(float));
+    float *trace = sdta;
+
+    fread(data, sizeof(short), nsamples, fd);
+    for (int i = 0; i < nsamples; i++) {
+      *trace++ = *(data + i) / 32767.0f;
+    }
+  }
+}
+void sf2Info(FILE *fd) {
+  sheader_t *header = (sheader_t *)malloc(sizeof(sheader_t));
+  header2_t *h2 = (header2_t *)malloc(sizeof(header2_t));
+  fread(header, sizeof(sheader_t), 1, fd);
+  fread(h2, sizeof(header2_t), 1, fd);
+  info = malloc(h2->size);
+  fread(info, h2->size, 1, fd);
+  fread(h2, sizeof(header2_t), 1, fd);
+
+  nsamples = h2->size / sizeof(short);
+  sdtastart = ftell(fd);
+
+  fseek(fd, h2->size, SEEK_CUR);
+#define readSection(section)                  \
+  fread(sh, sizeof(section_header), 1, fd);   \
+  n##section##s = sh->size / sizeof(section); \
+  section##s = (section *)malloc(sh->size);   \
+  fread(section##s, sizeof(section), sh->size / sizeof(section), fd);
+
+  section_header *sh = (section_header *)malloc(sizeof(section_header));
+
+  fread(h2, sizeof(header2_t), 1, fd);
+  readSection(phdr);
+
+  readSection(pbag);
+  readSection(pmod);
+  readSection(pgen);
+  readSection(inst);
+  readSection(ibag);
+  readSection(imod);
+  readSection(igen);
+  readSection(shdr);
+  presetZones = (PresetZones *)malloc(nphdrs * sizeof(PresetZones));
+  for (int i = 0; i < nphdrs; i++) {
+    *(presetZones + i) = findPresetZones(i, findPresetZonesCount(i));
+  }
+}
+
+void readsf(FILE *fd) {
+  sf2Info(fd);
+  read_sdta(fd);
+}
+
+void read_sf2_mem(void *mem, int n) {
+  FILE *fd = fmemopen(mem, n, "rb");
+  readsf(fd);
+}
+PresetZones findByPid(int pid, int bkid) {
+>>>>>>> ccb63045f94e41b01371b10a1e1f4968357b9326:sf2.c
   for (unsigned short i = 0; i < nphdrs - 1; i++) {
     if (phdrs[i].pid == pid && phdrs[i].bankId == bkid) {
       return presetZones + pid;
